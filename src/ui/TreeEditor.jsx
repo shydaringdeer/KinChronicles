@@ -17,6 +17,7 @@ import WaypointNode from './WaypointNode';
 import DraggableEdge from './DraggableEdge';
 import { supabase, logout } from '../state/supabase';
 import { saveTree, loadTree } from '../state/db';
+import TreeListModal from './TreeListModal';
 
 const initialNodes = [
   { id: '1', type: 'person', position: { x: 250, y: 150 }, data: { firstName: 'Root', lastName: 'Character', dynasty: 'Origin' } }
@@ -29,6 +30,9 @@ export default function TreeEditor() {
   const [selectedNodeId, setSelectedNodeId] = useState(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isTreeListOpen, setIsTreeListOpen] = useState(false);
+  const [currentTreeId, setCurrentTreeId] = useState(null);
+  const [currentTreeName, setCurrentTreeName] = useState('Untitled Tree');
   const [isSaving, setIsSaving] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [rfInstance, setRfInstance] = useState(null);
@@ -36,44 +40,58 @@ export default function TreeEditor() {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    // Check initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      const user = session?.user || null;
-      setCurrentUser(user);
-      if (user) {
-        loadTree(user.id).then(data => {
-          if (data && data.nodes && data.nodes.length > 0) {
-            setNodes(data.nodes);
-            setEdges(data.edges);
-          }
-        }).catch(err => console.error("Failed to load cloud save", err));
-      }
+      setCurrentUser(session?.user || null);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      const user = session?.user || null;
-      setCurrentUser(user);
-      if (user) {
-        loadTree(user.id).then(data => {
-          if (data && data.nodes && data.nodes.length > 0) {
-            setNodes(data.nodes);
-            setEdges(data.edges);
-          }
-        }).catch(err => console.error("Failed to load cloud save", err));
-      }
+      setCurrentUser(session?.user || null);
     });
     
     return () => subscription.unsubscribe();
-  }, [setNodes, setEdges]);
+  }, []);
+
+  const handleNewTree = () => {
+    if (window.confirm("Start a new family tree? Make sure your current one is saved!")) {
+      setNodes(initialNodes);
+      setEdges(initialEdges);
+      setCurrentTreeId(null);
+      setCurrentTreeName('Untitled Tree');
+    }
+  };
+
+  const handleSelectTree = async (id, name) => {
+    try {
+      const data = await loadTree(id, currentUser.id);
+      if (data && data.data && data.data.nodes) {
+        setNodes(data.data.nodes);
+        setEdges(data.data.edges || []);
+        setCurrentTreeId(id);
+        setCurrentTreeName(name);
+        setIsTreeListOpen(false);
+      }
+    } catch (err) {
+      alert("Failed to load tree: " + err.message);
+    }
+  };
 
   const handleSave = async () => {
     if (!currentUser) {
       return alert("You must be logged in to save to the cloud.");
     }
+    
+    let nameToSave = currentTreeName;
+    if (!currentTreeId) {
+      const inputName = prompt("Enter a name for this family tree:", currentTreeName);
+      if (!inputName) return; // cancelled
+      nameToSave = inputName;
+    }
+
     setIsSaving(true);
     try {
-      await saveTree(currentUser.id, nodes, edges);
+      const savedTree = await saveTree(currentUser.id, currentTreeId, nameToSave, nodes, edges);
+      setCurrentTreeId(savedTree.id);
+      setCurrentTreeName(savedTree.name);
       alert("Tree saved successfully!");
     } catch (err) {
       alert("Failed to save to cloud: " + (err.message || JSON.stringify(err)));
@@ -361,6 +379,14 @@ export default function TreeEditor() {
         />
       )}
 
+      {isTreeListOpen && currentUser && (
+        <TreeListModal
+          currentUser={currentUser}
+          onClose={() => setIsTreeListOpen(false)}
+          onSelect={handleSelectTree}
+        />
+      )}
+
       <div 
         style={{
           position: 'absolute',
@@ -412,6 +438,24 @@ export default function TreeEditor() {
         </div>
       </div>
 
+      {/* Top Center: Tree Name */}
+      <div style={{
+        position: 'absolute',
+        top: '24px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        background: 'var(--surface-1)',
+        padding: '0.5rem 1.5rem',
+        borderRadius: '12px',
+        border: '1px solid var(--surface-border)',
+        boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+        zIndex: 40,
+        fontWeight: 'bold',
+        fontSize: '1.2rem'
+      }}>
+        {currentTreeName}
+      </div>
+
       {/* Save & Auth Buttons (Top Right) */}
       <div style={{
         position: 'absolute',
@@ -423,12 +467,16 @@ export default function TreeEditor() {
         gap: '0.5rem'
       }}>
         {currentUser ? (
-          <button 
-            onClick={async () => { await logout(); navigate('/login'); }} 
-            style={{...btnStyle, color: '#ef4444'}}
-          >
-            Logout ({currentUser.email || 'User'})
-          </button>
+          <>
+            <button onClick={handleNewTree} style={btnStyle}>New Tree</button>
+            <button onClick={() => setIsTreeListOpen(true)} style={btnStyle}>My Trees</button>
+            <button 
+              onClick={async () => { await logout(); navigate('/login'); }} 
+              style={{...btnStyle, color: '#ef4444'}}
+            >
+              Logout
+            </button>
+          </>
         ) : (
           <button 
             onClick={() => navigate('/login')} 
