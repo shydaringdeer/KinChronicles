@@ -74,9 +74,9 @@ export default function TreeEditor() {
     setIsSaving(true);
     try {
       await saveTree(currentUser.id, nodes, edges);
-      // Optional: alert("Tree saved successfully!");
+      alert("Tree saved successfully!");
     } catch (err) {
-      alert("Failed to save to cloud.");
+      alert("Failed to save to cloud: " + (err.message || JSON.stringify(err)));
     } finally {
       setIsSaving(false);
     }
