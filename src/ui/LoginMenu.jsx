@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loginWithGoogle, loginWithEmail, signupWithEmail } from '../state/firebase';
+import { loginWithGoogle, loginWithEmail, signupWithEmail } from '../state/supabase';
 
 export default function LoginMenu() {
   const navigate = useNavigate();

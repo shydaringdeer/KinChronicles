@@ -189,7 +189,7 @@ export default function InspectorPanel({ selectedNode, selectedEdge, onUpdateNod
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>Last Name</label>
+        <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>House / Dynasty</label>
         <input 
           type="text" 
           name="lastName"
@@ -229,23 +229,108 @@ export default function InspectorPanel({ selectedNode, selectedEdge, onUpdateNod
         </select>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>Dynasty (House)</label>
-        <input 
-          type="text" 
-          name="dynasty"
-          value={data.dynasty || ''} 
-          onChange={handleChange}
-          style={{
-            padding: '0.75rem',
-            borderRadius: '8px',
-            backgroundColor: 'var(--bg-color)',
-            border: '1px solid var(--surface-border)',
-            color: 'var(--text-primary)',
-            fontSize: '1rem',
-            fontFamily: 'var(--font-body)'
-          }}
-        />
+      {data.lastName && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>Cadet Branch (Sub-house)</label>
+          <input 
+            type="text" 
+            name="cadetBranch"
+            value={data.cadetBranch || ''} 
+            onChange={handleChange}
+            placeholder="e.g. York"
+            style={{
+              padding: '0.75rem',
+              borderRadius: '8px',
+              backgroundColor: 'var(--bg-color)',
+              border: '1px solid var(--surface-border)',
+              color: 'var(--text-primary)',
+              fontSize: '1rem',
+              fontFamily: 'var(--font-body)'
+            }}
+          />
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: '1rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
+          <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>Birth Year</label>
+          <input 
+            type="text" 
+            name="birthYear"
+            value={data.birthYear || ''} 
+            onChange={handleChange}
+            placeholder="e.g. 1066"
+            style={{
+              padding: '0.75rem',
+              borderRadius: '8px',
+              backgroundColor: 'var(--bg-color)',
+              border: '1px solid var(--surface-border)',
+              color: 'var(--text-primary)',
+              fontSize: '1rem',
+              fontFamily: 'var(--font-body)'
+            }}
+          />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
+          <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>Death Year</label>
+          <input 
+            type="text" 
+            name="deathYear"
+            value={data.deathYear || ''} 
+            onChange={handleChange}
+            placeholder="e.g. 1100"
+            style={{
+              padding: '0.75rem',
+              borderRadius: '8px',
+              backgroundColor: 'var(--bg-color)',
+              border: '1px solid var(--surface-border)',
+              color: 'var(--text-primary)',
+              fontSize: '1rem',
+              fontFamily: 'var(--font-body)'
+            }}
+          />
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: '1rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
+          <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>Reign Start</label>
+          <input 
+            type="text" 
+            name="reignStart"
+            value={data.reignStart || ''} 
+            onChange={handleChange}
+            placeholder="e.g. 1080"
+            style={{
+              padding: '0.75rem',
+              borderRadius: '8px',
+              backgroundColor: 'var(--bg-color)',
+              border: '1px solid var(--surface-border)',
+              color: 'var(--text-primary)',
+              fontSize: '1rem',
+              fontFamily: 'var(--font-body)'
+            }}
+          />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
+          <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>Reign End</label>
+          <input 
+            type="text" 
+            name="reignEnd"
+            value={data.reignEnd || ''} 
+            onChange={handleChange}
+            placeholder="e.g. 1100"
+            style={{
+              padding: '0.75rem',
+              borderRadius: '8px',
+              backgroundColor: 'var(--bg-color)',
+              border: '1px solid var(--surface-border)',
+              color: 'var(--text-primary)',
+              fontSize: '1rem',
+              fontFamily: 'var(--font-body)'
+            }}
+          />
+        </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>

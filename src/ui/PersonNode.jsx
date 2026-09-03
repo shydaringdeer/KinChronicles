@@ -72,7 +72,11 @@ const PersonNode = ({ id, data, selected }) => {
       id: newNodeId,
       type: 'person',
       position: { x: node.position.x, y: node.position.y + 200 },
-      data: { firstName: 'New', lastName: 'Child' },
+      data: { 
+        firstName: 'New', 
+        lastName: node.data.lastName || 'Child',
+        cadetBranch: node.data.cadetBranch || ''
+      },
     };
     setNodes((nds) => nds.concat(newNode));
     setEdges((eds) => eds.concat({
@@ -119,9 +123,30 @@ const PersonNode = ({ id, data, selected }) => {
         <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>
           {data.firstName || 'New'} {data.lastName || 'Person'}
         </h3>
-        <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-          {data.dynasty ? `House ${data.dynasty}` : 'Unknown House'}
-        </p>
+        
+        {data.lastName && (
+          <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+            House {data.lastName}
+            {data.cadetBranch && <span style={{display: 'block', fontSize: '0.75rem', fontStyle: 'italic'}}>{data.cadetBranch} Branch</span>}
+          </p>
+        )}
+        {!data.lastName && (
+          <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+            Unknown House
+          </p>
+        )}
+
+        {(data.birthYear || data.deathYear) && (
+          <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: '#4b5563', fontWeight: 600 }}>
+            {data.birthYear || '?'} - {data.deathYear || '?'}
+          </p>
+        )}
+
+        {(data.reignStart || data.reignEnd) && (
+          <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: '#fbbf24', fontWeight: 600 }}>
+            👑 {data.reignStart || '?'} - {data.reignEnd || '?'}
+          </p>
+        )}
         
         {data.traits && (
           <div style={{ marginTop: '12px', display: 'flex', flexWrap: 'wrap', gap: '4px', justifyContent: 'center' }}>
