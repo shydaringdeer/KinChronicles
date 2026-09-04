@@ -16,9 +16,10 @@ import ExportModal from './ExportModal';
 import WaypointNode from './WaypointNode';
 import DraggableEdge from './DraggableEdge';
 import { supabase, logout } from '../state/supabase';
-import { saveTree, loadTree } from '../state/db';
+import { saveTree, loadTree, shareTree } from '../state/db';
 import TreeListModal from './TreeListModal';
 import { TreeContext } from './TreeContext';
+import { getLayoutedElements } from '../utils/layout';
 
 const initialNodes = [
   { id: '1', type: 'person', position: { x: 250, y: 150 }, data: { firstName: 'Root', lastName: 'Character', dynasty: 'Origin' } }
@@ -43,8 +44,16 @@ export default function TreeEditor() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDynastyId, setFilterDynastyId] = useState('');
   
+  // Theme State
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
+
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -108,6 +117,27 @@ export default function TreeEditor() {
       setIsSaving(false);
     }
   };
+
+  const handleShare = async () => {
+    if (!currentTreeId || !currentUser) {
+      alert("Please save your tree to the cloud first before sharing.");
+      return;
+    }
+    try {
+      await shareTree(currentTreeId, currentUser.id);
+      const url = `${window.location.origin}/#/view/${currentTreeId}`;
+      prompt("Your tree is now public! Copy this link to share:", url);
+    } catch (err) {
+      alert("Failed to share tree: " + (err.message || JSON.stringify(err)));
+    }
+  };
+
+  const handleAutoLayout = useCallback(() => {
+    const { layoutedNodes, layoutedEdges } = getLayoutedElements(nodes, edges);
+    setNodes([...layoutedNodes]);
+    setEdges([...layoutedEdges]);
+    setTimeout(() => rfInstance?.fitView({ duration: 800 }), 100);
+  }, [nodes, edges, setNodes, setEdges, rfInstance]);
 
   const nodeTypes = useMemo(() => ({ person: PersonNode, waypoint: WaypointNode }), []);
   const edgeTypes = useMemo(() => ({ 
@@ -686,18 +716,23 @@ export default function TreeEditor() {
           </button>
         )}
 
-        <button 
-          onClick={handleSave} 
-          disabled={isSaving}
-          style={{
-            ...primaryBtnStyle,
-            background: isSaving ? 'var(--surface-border)' : '#10b981', // green shade
-            opacity: isSaving ? 0.7 : 1
-          }}
-        >
-          {isSaving ? 'Saving...' : '💾 Save to Cloud'}
-        </button>
-      </div>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <button onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} style={{ padding: '0.5rem 1rem', background: 'var(--surface-1)', border: '1px solid var(--surface-border)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer' }}>
+            {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+          </button>
+          <button onClick={handleAutoLayout} style={{ padding: '0.5rem 1rem', background: 'var(--surface-1)', border: '1px solid var(--surface-border)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer' }}>
+            🪄 Auto-Layout
+          </button>
+          <button onClick={() => setIsExportModalOpen(true)} style={{ padding: '0.5rem 1rem', background: 'var(--surface-1)', border: '1px solid var(--surface-border)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer' }}>
+            🖼️ Export
+          </button>
+          <button onClick={handleShare} style={{ padding: '0.5rem 1rem', background: 'var(--surface-1)', border: '1px solid var(--surface-border)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer' }}>
+            🔗 Share
+          </button>
+          <button onClick={handleSave} disabled={isSaving} style={{ padding: '0.5rem 1rem', background: 'var(--accent-primary)', border: 'none', borderRadius: '8px', color: '#18181b', fontWeight: 600, cursor: isSaving ? 'not-allowed' : 'pointer' }}>
+            {isSaving ? 'Saving...' : '☁️ Save'}
+          </button>
+        </div>
     </div>
     </TreeContext.Provider>
   );

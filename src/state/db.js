@@ -67,14 +67,13 @@ export const loadTrees = async (userId) => {
 /**
  * Load a specific tree's full data
  */
-export const loadTree = async (treeId, userId) => {
+export const loadTree = async (treeId, userId = null) => {
   try {
-    const { data, error } = await supabase
-      .from('trees')
-      .select('*')
-      .eq('id', treeId)
-      .eq('user_id', userId)
-      .single();
+    let query = supabase.from('trees').select('*').eq('id', treeId);
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+    const { data, error } = await query.single();
       
     if (error) throw error;
     return data;
@@ -99,6 +98,25 @@ export const deleteTree = async (treeId, userId) => {
     return true;
   } catch (error) {
     console.error("Error deleting tree:", error);
+    throw error;
+  }
+};
+
+/**
+ * Make a tree public
+ */
+export const shareTree = async (treeId, userId) => {
+  try {
+    const { error } = await supabase
+      .from('trees')
+      .update({ is_public: true })
+      .eq('id', treeId)
+      .eq('user_id', userId);
+      
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Error sharing tree:", error);
     throw error;
   }
 };
