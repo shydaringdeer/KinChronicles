@@ -107,7 +107,7 @@ export default function TreeViewer() {
         {/* Top Right Controls */}
         <div style={{
           position: 'absolute', top: '24px', right: '24px', zIndex: 100,
-          display: 'flex', gap: '0.75rem'
+          display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: 'calc(100vw - 360px)'
         }}>
           <button onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} style={{ padding: '0.5rem 1rem', background: 'var(--surface-1)', border: '1px solid var(--surface-border)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer' }}>
             {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}

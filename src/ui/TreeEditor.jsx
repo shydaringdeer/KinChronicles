@@ -694,7 +694,10 @@ export default function TreeEditor() {
         zIndex: 100,
         transition: 'right 0.2s ease-in-out',
         display: 'flex',
-        gap: '0.5rem'
+        gap: '0.5rem',
+        flexWrap: 'wrap',
+        justifyContent: 'flex-end',
+        maxWidth: (selectedNode || selectedEdge) ? 'calc(100vw - 680px)' : 'calc(100vw - 360px)'
       }}>
         {currentUser ? (
           <>
@@ -716,7 +719,7 @@ export default function TreeEditor() {
           </button>
         )}
 
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <button onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} style={{ padding: '0.5rem 1rem', background: 'var(--surface-1)', border: '1px solid var(--surface-border)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer' }}>
             {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
           </button>
