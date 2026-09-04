@@ -27,7 +27,12 @@ export default async function handler(req, res) {
       .eq('id', userId)
       .single();
 
-    if (error || !profile) {
+    if (error) {
+      console.error('Supabase error:', error);
+      return res.status(500).json({ error: `Supabase error: ${error.message}` });
+    }
+    
+    if (!profile) {
       return res.status(404).json({ error: 'User profile not found' });
     }
 

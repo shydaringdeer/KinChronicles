@@ -177,11 +177,11 @@ export default function PricingModal({ isOpen, onClose, currentUser, subscriptio
                     } else if (data.error === 'no_stripe_account') {
                       alert(data.message);
                     } else {
-                      alert("Error opening billing portal. Please contact support.");
+                      alert(`Backend Error: ${data.error || 'Unknown error'}`);
                     }
                   } catch (err) {
                     console.error("Portal error:", err);
-                    alert("Network error connecting to billing portal.");
+                    alert(`Network error connecting to billing portal: ${err.message}`);
                   }
                 } else {
                   window.location.href = `${import.meta.env.VITE_STRIPE_PAYMENT_LINK}?client_reference_id=${currentUser.id}`;
