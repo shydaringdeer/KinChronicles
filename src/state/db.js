@@ -3,14 +3,14 @@ import { supabase } from './supabase';
 /**
  * Save a family tree to Supabase
  */
-export const saveTree = async (userId, treeId, name, nodes, edges) => {
+export const saveTree = async (userId, treeId, name, nodes, edges, dynasties = []) => {
   if (!userId) throw new Error("User not authenticated");
   
   try {
     let payload = {
       user_id: userId,
       name,
-      data: { nodes, edges },
+      data: { nodes, edges, dynasties },
       updated_at: new Date().toISOString()
     };
 
@@ -99,6 +99,30 @@ export const deleteTree = async (treeId, userId) => {
     return true;
   } catch (error) {
     console.error("Error deleting tree:", error);
+    throw error;
+  }
+};
+
+/**
+ * Upload an image to Supabase Storage
+ */
+export const uploadImage = async (file) => {
+  if (!file) return null;
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+  const filePath = `${fileName}`;
+
+  try {
+    const { error: uploadError } = await supabase.storage
+      .from('images')
+      .upload(filePath, file);
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage.from('images').getPublicUrl(filePath);
+    return data.publicUrl;
+  } catch (error) {
+    console.error("Error uploading image:", error);
     throw error;
   }
 };

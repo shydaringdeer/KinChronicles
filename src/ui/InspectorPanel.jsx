@@ -1,9 +1,98 @@
-import React from 'react';
+import React, { useContext, useState, useRef } from 'react';
+import { TreeContext } from './TreeContext';
+import { uploadImage } from '../state/db';
 
-export default function InspectorPanel({ selectedNode, selectedEdge, onUpdateNode, onDeleteNode, onDeleteEdge, onClose }) {
+export default function InspectorPanel({ selectedNode, selectedEdge, onUpdateNode, onUpdateEdge, onDeleteNode, onDeleteEdge, onClose }) {
+  const { dynasties, setDynasties } = useContext(TreeContext);
+  const [editingDynastyId, setEditingDynastyId] = useState(null); // null, 'new', or dynasty.id
+  const [newDynasty, setNewDynasty] = useState({ name: '', branch: '', coaUrl: '' });
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef(null);
+  const portraitInputRef = useRef(null);
+
+  const handleDynastySelect = (e) => {
+    const val = e.target.value;
+    if (val === '') {
+      onUpdateNode(selectedNode.id, { dynastyId: null, lastName: '', cadetBranch: '' });
+      return;
+    }
+    const d = dynasties.find(dyn => dyn.id === val);
+    if (d) {
+      onUpdateNode(selectedNode.id, { dynastyId: d.id, lastName: d.name, cadetBranch: d.branch || '' });
+    }
+  };
+
+  const handleEditDynasty = () => {
+    const d = dynasties.find(dyn => dyn.id === data.dynastyId);
+    if (d) {
+      setNewDynasty({ name: d.name, branch: d.branch || '', coaUrl: d.coaUrl || '' });
+      setEditingDynastyId(d.id);
+    }
+  };
+
+  const handleSaveDynasty = () => {
+    if (!newDynasty.name.trim()) return alert("House name is required");
+    
+    if (editingDynastyId === 'new') {
+      const id = `dyn-${Date.now()}`;
+      const d = { id, name: newDynasty.name.trim(), branch: newDynasty.branch.trim(), coaUrl: newDynasty.coaUrl };
+      setDynasties([...dynasties, d]);
+      onUpdateNode(selectedNode.id, { dynastyId: id, lastName: d.name, cadetBranch: d.branch });
+    } else {
+      // Editing existing
+      const updatedDynasties = dynasties.map(d => 
+        d.id === editingDynastyId ? { ...d, name: newDynasty.name.trim(), branch: newDynasty.branch.trim(), coaUrl: newDynasty.coaUrl } : d
+      );
+      setDynasties(updatedDynasties);
+      if (selectedNode.data.dynastyId === editingDynastyId) {
+        onUpdateNode(selectedNode.id, { lastName: newDynasty.name.trim(), cadetBranch: newDynasty.branch.trim() });
+      }
+    }
+    
+    setEditingDynastyId(null);
+    setNewDynasty({ name: '', branch: '', coaUrl: '' });
+  };
+
+  const handleCoaUpload = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setIsUploading(true);
+      try {
+        const publicUrl = await uploadImage(file);
+        setNewDynasty(prev => ({ ...prev, coaUrl: publicUrl }));
+      } catch (err) {
+        alert("Failed to upload image. Make sure your 'images' bucket is created and public in Supabase!");
+      } finally {
+        setIsUploading(false);
+      }
+    }
+  };
+
+  const handlePortraitUpload = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setIsUploading(true);
+      try {
+        const publicUrl = await uploadImage(file);
+        onUpdateNode(selectedNode.id, { portraitUrl: publicUrl });
+      } catch (err) {
+        alert("Failed to upload portrait.");
+      } finally {
+        setIsUploading(false);
+      }
+    }
+  };
+
   if (!selectedNode && !selectedEdge) return null;
 
   if (selectedEdge) {
+    const isSpouse = selectedEdge.sourceHandle === 'right' || selectedEdge.targetHandle === 'left';
+    const currentRelType = selectedEdge.data?.relationType || (isSpouse ? 'married' : 'biological');
+
+    const handleRelationChange = (e) => {
+      onUpdateEdge(selectedEdge.id, { relationType: e.target.value });
+    };
+
     return (
       <div 
         style={{
@@ -38,7 +127,39 @@ export default function InspectorPanel({ selectedNode, selectedEdge, onUpdateNod
             ✕
           </button>
         </div>
-        <p style={{ color: 'var(--text-muted)', lineHeight: '1.5' }}>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>Relationship Type</label>
+          <select 
+            value={currentRelType} 
+            onChange={handleRelationChange}
+            style={{
+              padding: '0.75rem',
+              borderRadius: '8px',
+              backgroundColor: 'var(--bg-color)',
+              border: '1px solid var(--surface-border)',
+              color: 'var(--text-primary)',
+              fontSize: '1rem',
+              fontFamily: 'var(--font-body)'
+            }}
+          >
+            {isSpouse ? (
+              <>
+                <option value="married">Married (Solid)</option>
+                <option value="betrothed">Betrothed (Dashed)</option>
+                <option value="lovers">Lovers / Paramours (Dotted)</option>
+              </>
+            ) : (
+              <>
+                <option value="biological">Biological (Solid)</option>
+                <option value="adopted">Adopted (Dashed)</option>
+                <option value="illegitimate">Illegitimate (Dotted)</option>
+              </>
+            )}
+          </select>
+        </div>
+
+        <p style={{ color: 'var(--text-muted)', lineHeight: '1.5', fontSize: '0.85rem' }}>
           You can double-click anywhere on this line on the canvas to instantly add a draggable waypoint!
         </p>
         <div style={{ marginTop: 'auto', paddingTop: '2rem' }}>
@@ -170,6 +291,32 @@ export default function InspectorPanel({ selectedNode, selectedEdge, onUpdateNod
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>Portrait (Image URL or Upload)</label>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <input 
+            type="text" 
+            name="portraitUrl"
+            value={data.portraitUrl || ''} 
+            onChange={handleChange}
+            placeholder="https://..."
+            style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--surface-border)', background: 'var(--bg-color)', color: 'white' }}
+            disabled={isUploading}
+          />
+          <button 
+            onClick={() => portraitInputRef.current?.click()} 
+            disabled={isUploading} 
+            style={{ padding: '0.75rem', borderRadius: '8px', cursor: isUploading ? 'not-allowed' : 'pointer', background: 'var(--surface-border)', border: 'none', color: 'white' }}
+          >
+            📁
+          </button>
+          <input type="file" ref={portraitInputRef} onChange={handlePortraitUpload} accept="image/*" style={{ display: 'none' }} />
+        </div>
+        {data.portraitUrl && !isUploading && (
+          <img src={data.portraitUrl} alt="Portrait Preview" style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '50%', alignSelf: 'center', marginTop: '0.5rem' }} />
+        )}
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
         <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>First Name</label>
         <input 
           type="text" 
@@ -189,22 +336,82 @@ export default function InspectorPanel({ selectedNode, selectedEdge, onUpdateNod
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>House / Dynasty</label>
-        <input 
-          type="text" 
-          name="lastName"
-          value={data.lastName || ''} 
-          onChange={handleChange}
-          style={{
-            padding: '0.75rem',
-            borderRadius: '8px',
-            backgroundColor: 'var(--bg-color)',
-            border: '1px solid var(--surface-border)',
-            color: 'var(--text-primary)',
-            fontSize: '1rem',
-            fontFamily: 'var(--font-body)'
-          }}
-        />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>House / Dynasty</label>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            {data.dynastyId && !editingDynastyId && (
+              <button 
+                onClick={handleEditDynasty}
+                style={{
+                  background: 'transparent', border: 'none', color: 'var(--text-primary)',
+                  cursor: 'pointer', fontSize: '0.8rem', textDecoration: 'underline'
+                }}
+              >
+                ✏️ Edit
+              </button>
+            )}
+            <button 
+              onClick={() => {
+                if (editingDynastyId) {
+                  setEditingDynastyId(null);
+                } else {
+                  setEditingDynastyId('new');
+                  setNewDynasty({ name: '', branch: '', coaUrl: '' });
+                }
+              }}
+              style={{
+                background: 'transparent', border: 'none', color: 'var(--text-primary)',
+                cursor: 'pointer', fontSize: '0.8rem', textDecoration: 'underline'
+              }}
+            >
+              {editingDynastyId ? 'Cancel' : '+ New'}
+            </button>
+          </div>
+        </div>
+
+        {editingDynastyId ? (
+          <div style={{ padding: '0.75rem', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <input 
+              type="text" placeholder="House Name (e.g. Stark)"
+              value={newDynasty.name} onChange={e => setNewDynasty({...newDynasty, name: e.target.value})}
+              style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--surface-border)', background: 'var(--bg-color)', color: 'white' }}
+            />
+            <input 
+              type="text" placeholder="Branch (e.g. Karstark - Optional)"
+              value={newDynasty.branch} onChange={e => setNewDynasty({...newDynasty, branch: e.target.value})}
+              style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--surface-border)', background: 'var(--bg-color)', color: 'white' }}
+            />
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <input type="text" placeholder="COA URL (or upload)" value={newDynasty.coaUrl} onChange={e => setNewDynasty({...newDynasty, coaUrl: e.target.value})} style={{ flex: 1, padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--surface-border)', background: 'var(--bg-color)', color: 'white', minWidth: 0 }} disabled={isUploading} />
+              <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} style={{ padding: '0.5rem', borderRadius: '4px', cursor: isUploading ? 'not-allowed' : 'pointer', background: 'var(--surface-border)', border: 'none', color: 'white' }}>📁</button>
+              <input type="file" ref={fileInputRef} onChange={handleCoaUpload} accept="image/*" style={{ display: 'none' }} />
+            </div>
+            {isUploading && <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Uploading image...</span>}
+            {newDynasty.coaUrl && !isUploading && <img src={newDynasty.coaUrl} alt="COA Preview" style={{ width: '40px', height: '40px', objectFit: 'contain', alignSelf: 'center' }} />}
+            <button onClick={handleSaveDynasty} disabled={isUploading} style={{ padding: '0.5rem', background: isUploading ? 'var(--surface-border)' : '#10b981', border: 'none', borderRadius: '4px', color: 'white', fontWeight: 'bold', cursor: isUploading ? 'not-allowed' : 'pointer' }}>Save Dynasty</button>
+          </div>
+        ) : (
+          <select 
+            value={data.dynastyId || ''} 
+            onChange={handleDynastySelect}
+            style={{
+              padding: '0.75rem',
+              borderRadius: '8px',
+              backgroundColor: 'var(--bg-color)',
+              border: '1px solid var(--surface-border)',
+              color: 'var(--text-primary)',
+              fontSize: '1rem',
+              fontFamily: 'var(--font-body)'
+            }}
+          >
+            <option value="">-- No House --</option>
+            {dynasties.map(d => (
+              <option key={d.id} value={d.id}>
+                {d.name} {d.branch ? `(${d.branch})` : ''}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -228,28 +435,6 @@ export default function InspectorPanel({ selectedNode, selectedEdge, onUpdateNod
           <option value="female">Female</option>
         </select>
       </div>
-
-      {data.lastName && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>Cadet Branch (Sub-house)</label>
-          <input 
-            type="text" 
-            name="cadetBranch"
-            value={data.cadetBranch || ''} 
-            onChange={handleChange}
-            placeholder="e.g. York"
-            style={{
-              padding: '0.75rem',
-              borderRadius: '8px',
-              backgroundColor: 'var(--bg-color)',
-              border: '1px solid var(--surface-border)',
-              color: 'var(--text-primary)',
-              fontSize: '1rem',
-              fontFamily: 'var(--font-body)'
-            }}
-          />
-        </div>
-      )}
 
       <div style={{ display: 'flex', gap: '1rem' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
@@ -339,18 +524,27 @@ export default function InspectorPanel({ selectedNode, selectedEdge, onUpdateNod
           name="traits"
           value={data.traits || ''} 
           onChange={handleChange}
-          rows={3}
+          rows={2}
           style={{
-            padding: '0.75rem',
-            borderRadius: '8px',
-            backgroundColor: 'var(--bg-color)',
-            border: '1px solid var(--surface-border)',
-            color: 'var(--text-primary)',
-            fontSize: '1rem',
-            fontFamily: 'var(--font-body)',
-            resize: 'vertical'
+            padding: '0.75rem', borderRadius: '8px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--surface-border)',
+            color: 'var(--text-primary)', fontSize: '1rem', fontFamily: 'var(--font-body)', resize: 'vertical'
           }}
           placeholder="e.g. Brave, Stubborn, Ambitious"
+        />
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>Biography / Notes</label>
+        <textarea 
+          name="bio"
+          value={data.bio || ''} 
+          onChange={handleChange}
+          rows={4}
+          style={{
+            padding: '0.75rem', borderRadius: '8px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--surface-border)',
+            color: 'var(--text-primary)', fontSize: '1rem', fontFamily: 'var(--font-body)', resize: 'vertical'
+          }}
+          placeholder="Write their history, secrets, and lore..."
         />
       </div>
       

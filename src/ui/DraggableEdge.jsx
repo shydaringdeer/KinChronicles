@@ -128,6 +128,7 @@ export default function DraggableEdge(props) {
         id={id}
         className="react-flow__edge-path"
         d={path}
+        fill="none"
         markerEnd={markerEnd}
         style={{ ...style, strokeWidth: style?.strokeWidth || 2 }}
       />

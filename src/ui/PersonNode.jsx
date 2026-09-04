@@ -1,5 +1,6 @@
-import React, { memo } from 'react';
+import React, { memo, useContext } from 'react';
 import { Handle, Position, NodeToolbar, useReactFlow } from '@xyflow/react';
+import { TreeContext } from './TreeContext';
 
 const handleStyle = {
   background: '#18181b',
@@ -22,6 +23,9 @@ const btnStyle = {
 
 const PersonNode = ({ id, data, selected }) => {
   const { setNodes, setEdges, getNode } = useReactFlow();
+  const { dynasties } = useContext(TreeContext);
+
+  const dynasty = dynasties.find(d => d.id === data.dynastyId);
 
   const addParent = () => {
     const node = getNode(id);
@@ -117,20 +121,52 @@ const PersonNode = ({ id, data, selected }) => {
           boxShadow: 'var(--node-shadow)',
           textAlign: 'center',
           fontFamily: 'var(--font-body)',
-          transition: 'all 0.2s ease-in-out'
+          transition: 'all 0.2s ease-in-out',
+          position: 'relative'
         }}
       >
-        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>
-          {data.firstName || 'New'} {data.lastName || 'Person'}
+        {dynasty?.coaUrl && (
+          <div style={{ position: 'absolute', top: '-24px', left: '50%', transform: 'translateX(-50%)' }}>
+            <img 
+              src={dynasty.coaUrl} 
+              alt="Coat of Arms" 
+              crossOrigin="anonymous"
+              style={{ width: '48px', height: '48px', objectFit: 'contain', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.3))' }} 
+            />
+          </div>
+        )}
+        
+        {data.bio && (
+          <div style={{ position: 'absolute', top: '8px', right: '8px', fontSize: '1.1rem' }} title="Has Biography">
+            📜
+          </div>
+        )}
+
+        {data.portraitUrl && (
+          <img 
+            src={data.portraitUrl}
+            alt="Portrait"
+            crossOrigin="anonymous"
+            style={{
+              width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover',
+              border: '2px solid var(--surface-border)',
+              margin: '8px auto 12px auto', display: 'block',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+            }}
+          />
+        )}
+        
+        <h3 style={{ margin: dynasty?.coaUrl && !data.portraitUrl ? '16px 0 0' : 0, fontSize: '1.1rem', fontWeight: 600 }}>
+          {data.firstName || 'New'} {dynasty?.name || data.lastName || 'Person'}
         </h3>
         
-        {data.lastName && (
+        {(dynasty?.name || data.lastName) && (
           <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-            House {data.lastName}
-            {data.cadetBranch && <span style={{display: 'block', fontSize: '0.75rem', fontStyle: 'italic'}}>{data.cadetBranch} Branch</span>}
+            House {dynasty?.name || data.lastName}
+            {(dynasty?.branch || data.cadetBranch) && <span style={{display: 'block', fontSize: '0.75rem', fontStyle: 'italic'}}>{dynasty?.branch || data.cadetBranch} Branch</span>}
           </p>
         )}
-        {!data.lastName && (
+        {!(dynasty?.name || data.lastName) && (
           <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
             Unknown House
           </p>

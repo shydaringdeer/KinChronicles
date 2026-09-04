@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toPng } from 'html-to-image';
 import { getNodesBounds, getViewportForBounds } from '@xyflow/react';
 
-export default function ExportModal({ nodes, edges, onClose }) {
+export default function ExportModal({ nodes, edges, dynasties = [], onClose }) {
   const [pngBlob, setPngBlob] = useState(null);
   const [isGenerating, setIsGenerating] = useState(true);
 
@@ -73,7 +73,7 @@ export default function ExportModal({ nodes, edges, onClose }) {
   };
 
   const handleDownloadJson = () => {
-    const data = JSON.stringify({ nodes, edges }, null, 2);
+    const data = JSON.stringify({ nodes, edges, dynasties }, null, 2);
     const blob = new Blob([data], { type: 'application/json' });
     saveFileNative(blob, 'family-tree.json', 'application/json', 'json');
   };

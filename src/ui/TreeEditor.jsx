@@ -18,6 +18,7 @@ import DraggableEdge from './DraggableEdge';
 import { supabase, logout } from '../state/supabase';
 import { saveTree, loadTree } from '../state/db';
 import TreeListModal from './TreeListModal';
+import { TreeContext } from './TreeContext';
 
 const initialNodes = [
   { id: '1', type: 'person', position: { x: 250, y: 150 }, data: { firstName: 'Root', lastName: 'Character', dynasty: 'Origin' } }
@@ -27,6 +28,7 @@ const initialEdges = [];
 export default function TreeEditor() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [dynasties, setDynasties] = useState([]);
   const [selectedNodeId, setSelectedNodeId] = useState(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -36,6 +38,11 @@ export default function TreeEditor() {
   const [isSaving, setIsSaving] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [rfInstance, setRfInstance] = useState(null);
+  
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterDynastyId, setFilterDynastyId] = useState('');
+  
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
@@ -55,6 +62,7 @@ export default function TreeEditor() {
     if (window.confirm("Start a new family tree? Make sure your current one is saved!")) {
       setNodes(initialNodes);
       setEdges(initialEdges);
+      setDynasties([]);
       setCurrentTreeId(null);
       setCurrentTreeName('Untitled Tree');
     }
@@ -66,6 +74,7 @@ export default function TreeEditor() {
       if (data && data.data && data.data.nodes) {
         setNodes(data.data.nodes);
         setEdges(data.data.edges || []);
+        setDynasties(data.data.dynasties || []);
         setCurrentTreeId(id);
         setCurrentTreeName(name);
         setIsTreeListOpen(false);
@@ -89,7 +98,7 @@ export default function TreeEditor() {
 
     setIsSaving(true);
     try {
-      const savedTree = await saveTree(currentUser.id, currentTreeId, nameToSave, nodes, edges);
+      const savedTree = await saveTree(currentUser.id, currentTreeId, nameToSave, nodes, edges, dynasties);
       setCurrentTreeId(savedTree.id);
       setCurrentTreeName(savedTree.name);
       alert("Tree saved successfully!");
@@ -115,9 +124,7 @@ export default function TreeEditor() {
       const edge = {
         ...params,
         type: 'smoothstep',
-        style: isSpouse 
-          ? { stroke: 'var(--edge-spouse)', strokeWidth: 2 } 
-          : { stroke: 'var(--edge-child)', strokeWidth: 2 }
+        data: { relationType: isSpouse ? 'married' : 'biological' }
       };
 
       setEdges((eds) => addEdge(edge, eds));
@@ -195,6 +202,20 @@ export default function TreeEditor() {
     );
   }, [setNodes]);
 
+  const onUpdateEdge = useCallback((id, newData) => {
+    setEdges((eds) =>
+      eds.map((edge) => {
+        if (edge.id === id) {
+          return {
+            ...edge,
+            data: { ...edge.data, ...newData },
+          };
+        }
+        return edge;
+      })
+    );
+  }, [setEdges]);
+
   const onDeleteNode = useCallback((id) => {
     setNodes((nds) => nds.filter((n) => n.id !== id));
     setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
@@ -230,6 +251,7 @@ export default function TreeEditor() {
         }));
         setNodes(data.nodes);
         setEdges(cleanedEdges);
+        setDynasties(data.dynasties || []);
         alert("Family tree imported successfully!");
       } else {
         alert("Invalid save file format.");
@@ -263,6 +285,7 @@ export default function TreeEditor() {
           }));
           setNodes(data.nodes);
           setEdges(cleanedEdges);
+          setDynasties(data.dynasties || []);
           alert("Family tree imported successfully!");
         } else {
           alert("Invalid save file format.");
@@ -280,27 +303,126 @@ export default function TreeEditor() {
   const selectedNode = nodes.find(n => n.id === selectedNodeId);
   const selectedEdge = edges.find(e => e.id === selectedEdgeId);
 
+  const handleGoToCharacter = (node) => {
+    if (rfInstance) {
+      rfInstance.setCenter(node.position.x, node.position.y, { zoom: 1, duration: 800 });
+      setSelectedNodeId(node.id);
+      setSelectedEdgeId(null);
+      setSearchQuery('');
+    }
+  };
+
+  const matchingCharacters = useMemo(() => {
+    if (!searchQuery) return [];
+    return nodes.filter(n => {
+      if (n.type !== 'person') return false;
+      const dyn = dynasties.find(d => d.id === n.data.dynastyId);
+      const houseName = dyn?.name || n.data.lastName || '';
+      const fullName = `${n.data.firstName || ''} ${houseName}`.toLowerCase();
+      
+      const matchesSearch = fullName.includes(searchQuery.toLowerCase());
+      const matchesFilter = filterDynastyId === '' || n.data.dynastyId === filterDynastyId;
+      
+      return matchesSearch && matchesFilter;
+    }).slice(0, 5);
+  }, [nodes, searchQuery, filterDynastyId, dynasties]);
+
   // Relationship Highlighting logic
-  const displayNodes = useMemo(() => {
-    if (!selectedNodeId) return nodes;
-    const relatedIds = new Set([selectedNodeId]);
-    edges.forEach(e => {
-      if (e.source === selectedNodeId) relatedIds.add(e.target);
-      if (e.target === selectedNodeId) relatedIds.add(e.source);
-    });
-    return nodes.map(n => ({
-      ...n,
-      style: { ...n.style, opacity: relatedIds.has(n.id) ? 1 : 0.2, transition: 'opacity 0.2s' }
-    }));
+  const { highlightedNodeIds, highlightedEdgeIds } = useMemo(() => {
+    const defaultRes = { highlightedNodeIds: null, highlightedEdgeIds: null };
+    if (!selectedNodeId) return defaultRes;
+    
+    const nodeMap = new Map(nodes.map(n => [n.id, n]));
+    const visitedNodes = new Set();
+    const visitedEdges = new Set();
+    
+    const queue = [selectedNodeId];
+    visitedNodes.add(selectedNodeId);
+    
+    while (queue.length > 0) {
+      const currId = queue.shift();
+      const currNode = nodeMap.get(currId);
+      if (!currNode) continue;
+      
+      if (currNode.type === 'person' && currId !== selectedNodeId) {
+        continue; // stop traversing past immediate relatives
+      }
+      
+      edges.forEach(e => {
+        if (e.source === currId || e.target === currId) {
+          visitedEdges.add(e.id);
+          const nextId = e.source === currId ? e.target : e.source;
+          if (!visitedNodes.has(nextId)) {
+            visitedNodes.add(nextId);
+            queue.push(nextId);
+          }
+        }
+      });
+    }
+    
+    return { highlightedNodeIds: visitedNodes, highlightedEdgeIds: visitedEdges };
   }, [nodes, edges, selectedNodeId]);
 
+  const displayNodes = useMemo(() => {
+    return nodes.map(n => {
+      let isVisible = true;
+      
+      // If a node is selected, we only show its relations.
+      if (selectedNodeId) {
+        isVisible = highlightedNodeIds ? highlightedNodeIds.has(n.id) : true;
+      } 
+      // Otherwise, if there is a search or filter, we use that.
+      else if (n.type === 'person') {
+        const query = searchQuery.toLowerCase();
+        
+        // We want to check dynasty.name too if they use it
+        const dyn = dynasties.find(d => d.id === n.data.dynastyId);
+        const houseName = dyn?.name || n.data.lastName || '';
+        const fullName = `${n.data.firstName || ''} ${houseName}`.toLowerCase();
+        
+        const matchesSearch = query === '' || fullName.includes(query);
+        const matchesFilter = filterDynastyId === '' || n.data.dynastyId === filterDynastyId;
+        
+        isVisible = matchesSearch && matchesFilter;
+      }
+      
+      return {
+        ...n,
+        style: { ...n.style, opacity: isVisible ? 1 : 0.1, pointerEvents: isVisible ? 'all' : 'none', transition: 'opacity 0.2s' }
+      };
+    });
+  }, [nodes, highlightedNodeIds, selectedNodeId, searchQuery, filterDynastyId, dynasties]);
+
   const displayEdges = useMemo(() => {
-    if (!selectedNodeId) return edges;
-    return edges.map(e => ({
-      ...e,
-      style: { ...e.style, opacity: (e.source === selectedNodeId || e.target === selectedNodeId) ? 1 : 0.1, transition: 'opacity 0.2s' }
-    }));
-  }, [edges, selectedNodeId]);
+    return edges.map(e => {
+      const isSpouse = e.sourceHandle === 'right' || e.targetHandle === 'left';
+      const relType = e.data?.relationType || (isSpouse ? 'married' : 'biological');
+      
+      let strokeColor = isSpouse ? 'var(--edge-spouse)' : 'var(--edge-child)';
+      let dashArray = 'none';
+
+      // Advanced Relationship Types
+      if (relType === 'adopted' || relType === 'betrothed') {
+        dashArray = '10, 8'; // Long dashes
+      } else if (relType === 'illegitimate' || relType === 'lovers') {
+        dashArray = '2, 8'; // Distinct dots
+      }
+
+      const isHighlighted = highlightedEdgeIds ? highlightedEdgeIds.has(e.id) : true;
+
+      return {
+        ...e,
+        style: { 
+          ...e.style, 
+          stroke: strokeColor,
+          strokeWidth: 2,
+          strokeDasharray: dashArray,
+          opacity: isHighlighted ? 1 : 0.1, 
+          transition: 'opacity 0.2s' 
+        }
+      };
+    });
+  }, [edges, highlightedEdgeIds]);
 
   // House Summary Stats
   const houseStats = useMemo(() => {
@@ -333,7 +455,8 @@ export default function TreeEditor() {
   };
 
   return (
-    <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
+    <TreeContext.Provider value={{ dynasties, setDynasties }}>
+      <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
       <ReactFlow
         nodes={displayNodes}
         edges={displayEdges}
@@ -363,6 +486,7 @@ export default function TreeEditor() {
         selectedNode={selectedNode} 
         selectedEdge={selectedEdge}
         onUpdateNode={onUpdateNode} 
+        onUpdateEdge={onUpdateEdge}
         onDeleteNode={onDeleteNode}
         onDeleteEdge={onDeleteEdge}
         onClose={() => {
@@ -375,6 +499,7 @@ export default function TreeEditor() {
         <ExportModal 
           nodes={nodes} 
           edges={edges} 
+          dynasties={dynasties}
           onClose={() => setIsExportModalOpen(false)} 
         />
       )}
@@ -391,7 +516,7 @@ export default function TreeEditor() {
         style={{
           position: 'absolute',
           bottom: '24px',
-          right: selectedNode ? '344px' : '24px', 
+          right: (selectedNode || selectedEdge) ? '344px' : '24px', 
           display: 'flex',
           gap: '1rem',
           zIndex: 100,
@@ -438,29 +563,104 @@ export default function TreeEditor() {
         </div>
       </div>
 
-      {/* Top Center: Tree Name */}
+      {/* Top Center: Tree Name & Search */}
       <div style={{
         position: 'absolute',
         top: '24px',
         left: '50%',
         transform: 'translateX(-50%)',
-        background: 'var(--surface-1)',
-        padding: '0.5rem 1.5rem',
-        borderRadius: '12px',
-        border: '1px solid var(--surface-border)',
-        boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
-        zIndex: 40,
-        fontWeight: 'bold',
-        fontSize: '1.2rem'
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '0.75rem',
+        zIndex: 40
       }}>
-        {currentTreeName}
+        <div style={{
+          background: 'var(--surface-1)',
+          padding: '0.5rem 1.5rem',
+          borderRadius: '12px',
+          border: '1px solid var(--surface-border)',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+          fontWeight: 'bold',
+          fontSize: '1.2rem',
+          color: 'var(--text-primary)'
+        }}>
+          {currentTreeName}
+        </div>
+        
+        <div style={{ position: 'relative' }}>
+          <div style={{
+            display: 'flex',
+            gap: '0.5rem',
+            background: 'var(--surface-1)',
+            padding: '0.5rem',
+            borderRadius: '12px',
+            border: '1px solid var(--surface-border)',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+          }}>
+            <input 
+              type="text"
+              placeholder="Search characters..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              style={{
+                padding: '0.5rem',
+                borderRadius: '8px',
+                border: '1px solid var(--surface-border)',
+                background: 'var(--bg-color)',
+                color: 'var(--text-primary)',
+                minWidth: '200px'
+              }}
+            />
+            <select
+              value={filterDynastyId}
+              onChange={e => setFilterDynastyId(e.target.value)}
+              style={{
+                padding: '0.5rem',
+                borderRadius: '8px',
+                border: '1px solid var(--surface-border)',
+                background: 'var(--bg-color)',
+                color: 'var(--text-primary)'
+              }}
+            >
+              <option value="">All Houses</option>
+              {dynasties.map(d => (
+                <option key={d.id} value={d.id}>{d.name} {d.branch ? `(${d.branch})` : ''}</option>
+              ))}
+            </select>
+          </div>
+          
+          {searchQuery && matchingCharacters.length > 0 && (
+            <div style={{
+              position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '0.5rem',
+              background: 'var(--surface-1)', borderRadius: '12px', border: '1px solid var(--surface-border)',
+              boxShadow: '0 4px 6px rgba(0,0,0,0.3)', overflow: 'hidden'
+            }}>
+              {matchingCharacters.map(c => {
+                const dyn = dynasties.find(d => d.id === c.data.dynastyId);
+                const houseName = dyn?.name || c.data.lastName || '';
+                return (
+                  <div 
+                    key={c.id} 
+                    onClick={() => handleGoToCharacter(c)}
+                    style={{ padding: '0.75rem 1rem', cursor: 'pointer', borderBottom: '1px solid var(--surface-border)', color: 'var(--text-primary)' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    🔍 {c.data.firstName} {houseName}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Save & Auth Buttons (Top Right) */}
       <div style={{
         position: 'absolute',
         top: '24px',
-        right: selectedNode ? '344px' : '24px',
+        right: (selectedNode || selectedEdge) ? '344px' : '24px',
         zIndex: 100,
         transition: 'right 0.2s ease-in-out',
         display: 'flex',
@@ -499,5 +699,6 @@ export default function TreeEditor() {
         </button>
       </div>
     </div>
+    </TreeContext.Provider>
   );
 }
