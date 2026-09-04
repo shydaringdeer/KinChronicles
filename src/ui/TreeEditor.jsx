@@ -18,6 +18,7 @@ import DraggableEdge from './DraggableEdge';
 import { supabase, logout, getUserProfile } from '../state/supabase';
 import { saveTree, loadTree, shareTree } from '../state/db';
 import TreeListModal from './TreeListModal';
+import PricingModal from './PricingModal';
 import { TreeContext } from './TreeContext';
 import { getLayoutedElements } from '../utils/layout';
 
@@ -49,6 +50,7 @@ export default function TreeEditor() {
 
   // Subscription State
   const [subscriptionTier, setSubscriptionTier] = useState('free');
+  const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
 
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
@@ -271,6 +273,11 @@ export default function TreeEditor() {
   }, [setEdges]);
 
   const addNode = () => {
+    if (subscriptionTier === 'free' && nodes.length >= 150) {
+      setIsPricingModalOpen(true);
+      return;
+    }
+
     const newNode = {
       id: `${Date.now()}`,
       type: 'person',
@@ -618,6 +625,38 @@ export default function TreeEditor() {
             width: 'max-content'
           }}>
             <span>{currentTreeName}</span>
+            {currentUser && (
+              <span 
+                onClick={() => {
+                  if (subscriptionTier === 'pro') {
+                    window.location.href = import.meta.env.VITE_STRIPE_PORTAL_LINK;
+                  } else {
+                    setIsPricingModalOpen(true);
+                  }
+                }}
+                title={subscriptionTier === 'pro' ? 'Manage Subscription' : 'Upgrade to Pro'}
+                style={{
+                  fontSize: '0.8rem',
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  background: subscriptionTier === 'pro' ? 'linear-gradient(45deg, #f59e0b, #d97706)' : 'var(--surface-border)',
+                  color: subscriptionTier === 'pro' ? 'white' : 'var(--text-secondary)',
+                  marginLeft: '10px',
+                  verticalAlign: 'middle',
+                  fontWeight: 'bold',
+                  letterSpacing: '1px',
+                  textTransform: 'uppercase',
+                  boxShadow: subscriptionTier === 'pro' ? '0 0 10px rgba(245, 158, 11, 0.3)' : 'none',
+                  WebkitTextFillColor: subscriptionTier === 'pro' ? 'white' : 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s ease',
+                }}
+                onMouseOver={(e) => e.target.style.transform = 'scale(1.1)'}
+                onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
+              >
+                {subscriptionTier === 'pro' ? 'PRO' : 'FREE'}
+              </span>
+            )}
             <button onClick={() => setIsEditNameModalOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem' }}>✏️</button>
           </div>
           
@@ -706,7 +745,7 @@ export default function TreeEditor() {
             <>
               {subscriptionTier === 'free' && (
                 <button 
-                  onClick={() => window.location.href = `${import.meta.env.VITE_STRIPE_PAYMENT_LINK}?client_reference_id=${currentUser.id}`} 
+                  onClick={() => setIsPricingModalOpen(true)} 
                   style={{...btnStyle, background: 'linear-gradient(45deg, #f59e0b, #d97706)', color: '#fff', border: 'none', fontWeight: 'bold'}}
                 >
                   ⭐ Upgrade to Pro
@@ -748,7 +787,11 @@ export default function TreeEditor() {
             </button>
           </div>
         </div>
-      </div>
+      <PricingModal 
+        isOpen={isPricingModalOpen} 
+        onClose={() => setIsPricingModalOpen(false)} 
+        currentUser={currentUser} 
+      />
     </div>
     </TreeContext.Provider>
   );

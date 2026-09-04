@@ -48,12 +48,16 @@ export default async function handler(req, res) {
     
     // The user's Supabase UUID is passed in the client_reference_id
     const userId = session.client_reference_id;
+    const stripeCustomerId = session.customer; // This is the ID we need to save!
 
     if (userId) {
       console.log(`Upgrading user ${userId} to Pro...`);
       const { error } = await supabase
         .from('profiles')
-        .update({ subscription_tier: 'pro' })
+        .update({ 
+          subscription_tier: 'pro',
+          stripe_customer_id: stripeCustomerId
+        })
         .eq('id', userId);
 
       if (error) {
@@ -62,6 +66,23 @@ export default async function handler(req, res) {
       }
     } else {
       console.warn('Checkout completed but no client_reference_id was found!');
+    }
+  }
+
+  // Handle Cancellations
+  if (event.type === 'customer.subscription.deleted') {
+    const subscription = event.data.object;
+    const stripeCustomerId = subscription.customer;
+
+    console.log(`Downgrading Stripe Customer ${stripeCustomerId} to Free...`);
+    const { error } = await supabase
+      .from('profiles')
+      .update({ subscription_tier: 'free' })
+      .eq('stripe_customer_id', stripeCustomerId);
+
+    if (error) {
+      console.error('Error downgrading user profile:', error);
+      return res.status(500).json({ error: 'Database update failed' });
     }
   }
 
