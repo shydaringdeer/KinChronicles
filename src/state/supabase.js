@@ -16,10 +16,7 @@ export const supabase = createClient(supabaseUrl || 'https://placeholder.supabas
 export const loginWithGoogle = async () => {
   try {
     const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin + '/#/tree'
-      }
+      provider: 'google'
     });
     return { data, error: error ? error.message : null };
   } catch (error) {
