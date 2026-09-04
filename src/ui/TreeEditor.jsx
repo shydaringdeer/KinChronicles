@@ -651,7 +651,27 @@ export default function TreeEditor() {
                 {subscriptionTier === 'pro' ? 'PRO' : 'FREE'}
               </span>
             )}
-            <button onClick={() => setIsEditNameModalOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem' }}>✏️</button>
+            
+            {currentUser && subscriptionTier === 'free' && (
+              <span style={{
+                fontSize: '0.8rem',
+                padding: '2px 8px',
+                borderRadius: '12px',
+                background: 'var(--surface-border)',
+                color: nodes.length >= 150 ? '#ef4444' : 'var(--text-secondary)',
+                marginLeft: '10px',
+                verticalAlign: 'middle',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+              onClick={() => setIsPricingModalOpen(true)}
+              title="Upgrade to Pro for unlimited characters!"
+              >
+                {nodes.length} / 150 Chars
+              </span>
+            )}
+
+            <button onClick={() => setIsEditNameModalOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', marginLeft: '5px' }}>✏️</button>
           </div>
           
           <div style={{ position: 'relative', width: 'max-content', maxWidth: '100%' }}>
