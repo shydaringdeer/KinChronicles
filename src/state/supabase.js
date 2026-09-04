@@ -24,6 +24,19 @@ export const loginWithGoogle = async () => {
   }
 };
 
+export const getUserProfile = async (userId) => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('subscription_tier')
+      .eq('id', userId)
+      .single();
+    return { profile: data, error: error ? error.message : null };
+  } catch (error) {
+    return { profile: null, error: error.message };
+  }
+};
+
 export const loginWithEmail = async (email, password) => {
   try {
     const { data, error } = await supabase.auth.signInWithPassword({

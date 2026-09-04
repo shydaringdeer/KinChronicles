@@ -15,7 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import ExportModal from './ExportModal';
 import WaypointNode from './WaypointNode';
 import DraggableEdge from './DraggableEdge';
-import { supabase, logout } from '../state/supabase';
+import { supabase, logout, getUserProfile } from '../state/supabase';
 import { saveTree, loadTree, shareTree } from '../state/db';
 import TreeListModal from './TreeListModal';
 import { TreeContext } from './TreeContext';
@@ -47,6 +47,9 @@ export default function TreeEditor() {
   // Theme State
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
 
+  // Subscription State
+  const [subscriptionTier, setSubscriptionTier] = useState('free');
+
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
@@ -66,6 +69,16 @@ export default function TreeEditor() {
     
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (currentUser) {
+      getUserProfile(currentUser.id).then(({ profile }) => {
+        if (profile) setSubscriptionTier(profile.subscription_tier);
+      });
+    } else {
+      setSubscriptionTier('free');
+    }
+  }, [currentUser]);
 
   const handleNewTree = () => {
     if (window.confirm("Start a new family tree? Make sure your current one is saved!")) {
@@ -686,10 +699,19 @@ export default function TreeEditor() {
           flexWrap: 'wrap',
           justifyContent: 'flex-end',
           maxWidth: '100%',
-          flex: '1 1 auto'
+          flex: '1 1 auto',
+          alignItems: 'center'
         }}>
           {currentUser ? (
             <>
+              {subscriptionTier === 'free' && (
+                <button 
+                  onClick={() => window.location.href = `${import.meta.env.VITE_STRIPE_PAYMENT_LINK}?client_reference_id=${currentUser.id}`} 
+                  style={{...btnStyle, background: 'linear-gradient(45deg, #f59e0b, #d97706)', color: '#fff', border: 'none', fontWeight: 'bold'}}
+                >
+                  ⭐ Upgrade to Pro
+                </button>
+              )}
               <button onClick={handleNewTree} style={btnStyle}>New Tree</button>
               <button onClick={() => setIsTreeListOpen(true)} style={btnStyle}>My Trees</button>
               <button 
