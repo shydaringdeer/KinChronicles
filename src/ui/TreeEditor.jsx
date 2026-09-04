@@ -733,6 +733,7 @@ export default function TreeEditor() {
             {isSaving ? 'Saving...' : '☁️ Save'}
           </button>
         </div>
+      </div>
     </div>
     </TreeContext.Provider>
   );

@@ -136,7 +136,7 @@ const PersonNode = ({ id, data, selected }) => {
           width: '200px',
           padding: '1rem',
           borderRadius: '12px',
-          backgroundColor: data.gender === 'male' ? '#e0f2fe' : data.gender === 'female' ? '#fce7f3' : 'var(--surface-0)',
+          backgroundColor: data.gender === 'male' ? '#bfdbfe' : data.gender === 'female' ? '#fbcfe8' : '#ffffff',
           color: 'var(--node-text)',
           border: `${borderWidth} solid ${borderColor}`,
           boxShadow: boxShadow,
