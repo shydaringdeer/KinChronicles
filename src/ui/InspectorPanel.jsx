@@ -53,15 +53,70 @@ export default function InspectorPanel({ selectedNode, selectedEdge, onUpdateNod
     setNewDynasty({ name: '', branch: '', coaUrl: '' });
   };
 
+  const compressImage = (file) => {
+    return new Promise((resolve, reject) => {
+      // Don't compress SVGs or non-images
+      if (!file.type.startsWith('image/') || file.type === 'image/svg+xml') {
+        resolve(file);
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          const MAX_SIZE = 800;
+          if (width > height) {
+            if (width > MAX_SIZE) {
+              height *= MAX_SIZE / width;
+              width = MAX_SIZE;
+            }
+          } else {
+            if (height > MAX_SIZE) {
+              width *= MAX_SIZE / height;
+              height = MAX_SIZE;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          canvas.toBlob((blob) => {
+            if (!blob) {
+              resolve(file); // fallback
+              return;
+            }
+            const newFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+              type: 'image/jpeg',
+              lastModified: Date.now()
+            });
+            resolve(newFile);
+          }, 'image/jpeg', 0.85);
+        };
+        img.onerror = () => resolve(file); // fallback if parsing fails
+        img.src = event.target.result;
+      };
+      reader.onerror = () => resolve(file);
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleCoaUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
       setIsUploading(true);
       try {
-        const publicUrl = await uploadImage(file);
+        const compressed = await compressImage(file);
+        const publicUrl = await uploadImage(compressed);
         setNewDynasty(prev => ({ ...prev, coaUrl: publicUrl }));
       } catch (err) {
-        alert("Failed to upload image. Make sure your 'images' bucket is created and public in Supabase!");
+        alert("Failed to upload image. Error: " + (err.message || JSON.stringify(err)));
       } finally {
         setIsUploading(false);
       }
@@ -73,10 +128,11 @@ export default function InspectorPanel({ selectedNode, selectedEdge, onUpdateNod
     if (file) {
       setIsUploading(true);
       try {
-        const publicUrl = await uploadImage(file);
+        const compressed = await compressImage(file);
+        const publicUrl = await uploadImage(compressed);
         onUpdateNode(selectedNode.id, { portraitUrl: publicUrl });
       } catch (err) {
-        alert("Failed to upload portrait.");
+        alert("Failed to upload portrait. Error: " + (err.message || JSON.stringify(err)));
       } finally {
         setIsUploading(false);
       }
