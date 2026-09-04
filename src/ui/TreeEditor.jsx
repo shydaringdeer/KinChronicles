@@ -787,6 +787,7 @@ export default function TreeEditor() {
             </button>
           </div>
         </div>
+      </div>
       <PricingModal 
         isOpen={isPricingModalOpen} 
         onClose={() => setIsPricingModalOpen(false)} 
