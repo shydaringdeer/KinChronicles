@@ -627,13 +627,7 @@ export default function TreeEditor() {
             <span>{currentTreeName}</span>
             {currentUser && (
               <span 
-                onClick={() => {
-                  if (subscriptionTier === 'pro') {
-                    window.location.href = import.meta.env.VITE_STRIPE_PORTAL_LINK;
-                  } else {
-                    setIsPricingModalOpen(true);
-                  }
-                }}
+                onClick={() => setIsPricingModalOpen(true)}
                 title={subscriptionTier === 'pro' ? 'Manage Subscription' : 'Upgrade to Pro'}
                 style={{
                   fontSize: '0.8rem',
@@ -792,6 +786,7 @@ export default function TreeEditor() {
         isOpen={isPricingModalOpen} 
         onClose={() => setIsPricingModalOpen(false)} 
         currentUser={currentUser} 
+        subscriptionTier={subscriptionTier}
       />
     </div>
     </TreeContext.Provider>

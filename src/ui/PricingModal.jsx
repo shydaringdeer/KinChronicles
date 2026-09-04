@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function PricingModal({ isOpen, onClose, currentUser }) {
+export default function PricingModal({ isOpen, onClose, currentUser, subscriptionTier }) {
   if (!isOpen) return null;
 
   return (
@@ -51,7 +51,7 @@ export default function PricingModal({ isOpen, onClose, currentUser }) {
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent'
         }}>
-          Upgrade to KinChronicles Pro
+          KinChronicles Pro Features
         </h2>
         <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '3rem', fontSize: '1.1rem' }}>
           Take your world-building to the next level with unlimited characters and premium tools.
@@ -65,7 +65,8 @@ export default function PricingModal({ isOpen, onClose, currentUser }) {
             padding: '2rem',
             border: '1px solid var(--surface-border)',
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            opacity: subscriptionTier === 'pro' ? 0.5 : 1
           }}>
             <h3 style={{ fontSize: '1.5rem', color: 'var(--text-primary)', marginBottom: '1rem' }}>Free Tier</h3>
             <div style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '1.5rem', color: 'var(--text-primary)' }}>$0<span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}> / forever</span></div>
@@ -91,7 +92,7 @@ export default function PricingModal({ isOpen, onClose, currentUser }) {
                 fontWeight: 'bold'
               }}
             >
-              Current Plan
+              {subscriptionTier === 'free' ? 'Current Plan' : 'Included in Pro'}
             </button>
           </div>
 
@@ -106,22 +107,43 @@ export default function PricingModal({ isOpen, onClose, currentUser }) {
             position: 'relative',
             boxShadow: '0 0 30px rgba(245, 158, 11, 0.1)'
           }}>
-            <div style={{
-              position: 'absolute',
-              top: '-12px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              background: 'linear-gradient(45deg, #f59e0b, #d97706)',
-              color: 'white',
-              padding: '4px 12px',
-              borderRadius: '20px',
-              fontSize: '0.8rem',
-              fontWeight: 'bold',
-              letterSpacing: '1px',
-              textTransform: 'uppercase'
-            }}>
-              Most Popular
-            </div>
+            {subscriptionTier === 'free' && (
+              <div style={{
+                position: 'absolute',
+                top: '-12px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: 'linear-gradient(45deg, #f59e0b, #d97706)',
+                color: 'white',
+                padding: '4px 12px',
+                borderRadius: '20px',
+                fontSize: '0.8rem',
+                fontWeight: 'bold',
+                letterSpacing: '1px',
+                textTransform: 'uppercase'
+              }}>
+                Most Popular
+              </div>
+            )}
+            
+            {subscriptionTier === 'pro' && (
+              <div style={{
+                position: 'absolute',
+                top: '-12px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: '#10b981',
+                color: 'white',
+                padding: '4px 12px',
+                borderRadius: '20px',
+                fontSize: '0.8rem',
+                fontWeight: 'bold',
+                letterSpacing: '1px',
+                textTransform: 'uppercase'
+              }}>
+                Your Current Plan
+              </div>
+            )}
 
             <h3 style={{ fontSize: '1.5rem', color: '#f59e0b', marginBottom: '1rem' }}>Pro Tier</h3>
             <div style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '1.5rem', color: 'var(--text-primary)' }}>$5.00<span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}> / month</span></div>
@@ -137,7 +159,11 @@ export default function PricingModal({ isOpen, onClose, currentUser }) {
             <button 
               onClick={() => {
                 if (currentUser) {
-                  window.location.href = `${import.meta.env.VITE_STRIPE_PAYMENT_LINK}?client_reference_id=${currentUser.id}`;
+                  if (subscriptionTier === 'pro') {
+                    window.location.href = import.meta.env.VITE_STRIPE_PORTAL_LINK;
+                  } else {
+                    window.location.href = `${import.meta.env.VITE_STRIPE_PAYMENT_LINK}?client_reference_id=${currentUser.id}`;
+                  }
                 } else {
                   alert("Please log in first!");
                 }
@@ -145,20 +171,20 @@ export default function PricingModal({ isOpen, onClose, currentUser }) {
               style={{
                 marginTop: '2rem',
                 padding: '1rem',
-                background: 'linear-gradient(45deg, #f59e0b, #d97706)',
-                color: 'white',
-                border: 'none',
+                background: subscriptionTier === 'pro' ? 'var(--surface-1)' : 'linear-gradient(45deg, #f59e0b, #d97706)',
+                color: subscriptionTier === 'pro' ? 'var(--text-primary)' : 'white',
+                border: subscriptionTier === 'pro' ? '1px solid var(--surface-border)' : 'none',
                 borderRadius: 'var(--radius-md)',
                 cursor: 'pointer',
                 fontWeight: 'bold',
                 fontSize: '1.1rem',
                 transition: 'transform 0.2s',
-                boxShadow: '0 4px 15px rgba(245, 158, 11, 0.4)'
+                boxShadow: subscriptionTier === 'pro' ? 'none' : '0 4px 15px rgba(245, 158, 11, 0.4)'
               }}
               onMouseOver={(e) => e.target.style.transform = 'scale(1.02)'}
               onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
             >
-              ⭐ Upgrade to Pro
+              {subscriptionTier === 'pro' ? 'Manage Subscription' : '⭐ Upgrade to Pro'}
             </button>
           </div>
         </div>
