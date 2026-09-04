@@ -157,15 +157,34 @@ export default function PricingModal({ isOpen, onClose, currentUser, subscriptio
             </ul>
 
             <button 
-              onClick={() => {
-                if (currentUser) {
-                  if (subscriptionTier === 'pro') {
-                    window.location.href = import.meta.env.VITE_STRIPE_PORTAL_LINK;
-                  } else {
-                    window.location.href = `${import.meta.env.VITE_STRIPE_PAYMENT_LINK}?client_reference_id=${currentUser.id}`;
+              onClick={async () => {
+                if (!currentUser) {
+                  alert("Please log in first!");
+                  return;
+                }
+                
+                if (subscriptionTier === 'pro') {
+                  try {
+                    const res = await fetch('/api/portal', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ userId: currentUser.id })
+                    });
+                    const data = await res.json();
+                    
+                    if (res.ok && data.url) {
+                      window.location.href = data.url;
+                    } else if (data.error === 'no_stripe_account') {
+                      alert(data.message);
+                    } else {
+                      alert("Error opening billing portal. Please contact support.");
+                    }
+                  } catch (err) {
+                    console.error("Portal error:", err);
+                    alert("Network error connecting to billing portal.");
                   }
                 } else {
-                  alert("Please log in first!");
+                  window.location.href = `${import.meta.env.VITE_STRIPE_PAYMENT_LINK}?client_reference_id=${currentUser.id}`;
                 }
               }}
               style={{
