@@ -727,6 +727,7 @@ export default function TreeEditor() {
           </div>
         </div>
       </div>
+    </div>
     </TreeContext.Provider>
   );
 }
