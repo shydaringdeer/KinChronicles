@@ -13,13 +13,12 @@ export default function LoginMenu() {
   const handleGoogleAuth = async () => {
     setLoading(true);
     setError('');
-    const { user, error: authError } = await loginWithGoogle();
-    setLoading(false);
-    if (user) {
-      navigate('/tree');
-    } else {
-      setError(authError || 'Google authentication failed');
+    const { error: authError } = await loginWithGoogle();
+    if (authError) {
+      setLoading(false);
+      setError(authError);
     }
+    // If successful, Supabase will automatically redirect the browser to Google
   };
 
   const handleEmailAuth = async (e) => {
