@@ -492,6 +492,30 @@ export default function InspectorPanel({ selectedNode, selectedEdge, onUpdateNod
         </select>
       </div>
 
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>Card Style (Border Color)</label>
+        <select 
+          name="cardColor"
+          value={data.cardColor || 'default'} 
+          onChange={handleChange}
+          style={{
+            padding: '0.75rem',
+            borderRadius: '8px',
+            backgroundColor: 'var(--bg-color)',
+            border: '1px solid var(--surface-border)',
+            color: 'var(--text-primary)',
+            fontSize: '1rem',
+            fontFamily: 'var(--font-body)'
+          }}
+        >
+          <option value="default">Default</option>
+          <option value="gold">Gold (Royalty / Leader)</option>
+          <option value="crimson">Crimson (Military / Aggressive)</option>
+          <option value="violet">Violet (Mystic / Scholar)</option>
+          <option value="emerald">Emerald (Nature / Wealth)</option>
+        </select>
+      </div>
+
       <div style={{ display: 'flex', gap: '1rem' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
           <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>Birth Year</label>

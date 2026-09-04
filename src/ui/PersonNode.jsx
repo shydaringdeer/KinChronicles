@@ -25,7 +25,31 @@ const PersonNode = ({ id, data, selected }) => {
   const { setNodes, setEdges, getNode } = useReactFlow();
   const { dynasties } = useContext(TreeContext);
 
-  const dynasty = dynasties.find(d => d.id === data.dynastyId);
+  const dynasty = dynasties?.find(d => d.id === data.dynastyId);
+
+  const birth = parseInt(data.birthYear);
+  const death = parseInt(data.deathYear);
+  let ageString = '';
+  if (!isNaN(birth) && !isNaN(death)) {
+    ageString = `${birth} - ${death} (Age ${death - birth})`;
+  } else if (!isNaN(birth)) {
+    ageString = `b. ${birth}`;
+  } else if (!isNaN(death)) {
+    ageString = `d. ${death}`;
+  }
+
+  const colorMap = {
+    default: 'var(--surface-border)',
+    gold: '#fbbf24',
+    crimson: '#ef4444',
+    violet: '#8b5cf6',
+    emerald: '#10b981'
+  };
+  
+  const customColor = data.cardColor && colorMap[data.cardColor] ? colorMap[data.cardColor] : null;
+  const borderColor = customColor || (selected ? 'var(--edge-child)' : 'var(--surface-border)');
+  const borderWidth = customColor || selected ? '2px' : '1px';
+  const boxShadow = customColor ? `0 0 15px ${customColor}40` : (selected ? '0 0 0 4px rgba(59, 130, 246, 0.3)' : '0 4px 6px rgba(0,0,0,0.1)');
 
   const addParent = () => {
     const node = getNode(id);
@@ -112,13 +136,10 @@ const PersonNode = ({ id, data, selected }) => {
           width: '200px',
           padding: '1rem',
           borderRadius: '12px',
-          backgroundColor: data.gender === 'male' ? '#e0f2fe' : data.gender === 'female' ? '#fce7f3' : 'var(--node-bg)',
+          backgroundColor: data.gender === 'male' ? '#e0f2fe' : data.gender === 'female' ? '#fce7f3' : 'var(--surface-0)',
           color: 'var(--node-text)',
-          border: selected ? '3px solid var(--node-border-active)' : 
-                  data.gender === 'male' ? '3px solid #3b82f6' : 
-                  data.gender === 'female' ? '3px solid #ec4899' : 
-                  '3px solid var(--node-border)',
-          boxShadow: 'var(--node-shadow)',
+          border: `${borderWidth} solid ${borderColor}`,
+          boxShadow: boxShadow,
           textAlign: 'center',
           fontFamily: 'var(--font-body)',
           transition: 'all 0.2s ease-in-out',
@@ -166,15 +187,16 @@ const PersonNode = ({ id, data, selected }) => {
             {(dynasty?.branch || data.cadetBranch) && <span style={{display: 'block', fontSize: '0.75rem', fontStyle: 'italic'}}>{dynasty?.branch || data.cadetBranch} Branch</span>}
           </p>
         )}
+
+        {ageString && (
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem', background: 'var(--surface-1)', padding: '2px 8px', borderRadius: '12px', display: 'inline-block' }}>
+            {ageString}
+          </div>
+        )}
+
         {!(dynasty?.name || data.lastName) && (
           <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
             Unknown House
-          </p>
-        )}
-
-        {(data.birthYear || data.deathYear) && (
-          <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: '#4b5563', fontWeight: 600 }}>
-            {data.birthYear || '?'} - {data.deathYear || '?'}
           </p>
         )}
 
