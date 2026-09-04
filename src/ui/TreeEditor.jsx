@@ -566,178 +566,167 @@ export default function TreeEditor() {
         <button onClick={addNode} style={primaryBtnStyle}>Add Node</button>
       </div>
 
-      {/* House Summary Panel (Top Left) */}
+      {/* Top UI Overlay */}
       <div style={{
         position: 'absolute',
         top: '24px',
         left: '24px',
-        background: 'var(--surface-1)',
-        padding: '1rem',
-        borderRadius: '12px',
-        border: '1px solid var(--surface-border)',
-        boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+        right: (selectedNode || selectedEdge) ? '344px' : '24px',
         zIndex: 40,
-        minWidth: '200px',
-        maxHeight: '300px',
-        overflowY: 'auto'
-      }}>
-        <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '1rem', color: 'var(--text-primary)' }}>Dynasties</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          {houseStats.map(([house, count]) => (
-            <div key={house} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-              <span style={{ color: 'var(--text-muted)' }}>{house}</span>
-              <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{count}</span>
-            </div>
-          ))}
-          {houseStats.length === 0 && <span style={{fontSize: '0.85rem', color: 'var(--text-muted)'}}>No characters yet.</span>}
-        </div>
-      </div>
-
-      {/* Top Center: Tree Name & Search */}
-      <div style={{
-        position: 'absolute',
-        top: '24px',
-        left: '50%',
-        transform: 'translateX(-50%)',
         display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '0.75rem',
-        zIndex: 40
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        pointerEvents: 'none',
+        transition: 'right 0.2s ease-in-out'
       }}>
-        <div style={{
-          background: 'var(--surface-1)',
-          padding: '0.5rem 1.5rem',
-          borderRadius: '12px',
-          border: '1px solid var(--surface-border)',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
-          fontWeight: 'bold',
-          fontSize: '1.2rem',
-          color: 'var(--text-primary)'
-        }}>
-          {currentTreeName}
-        </div>
         
-        <div style={{ position: 'relative' }}>
+        {/* Left/Center Section: Title & Search */}
+        <div style={{
+          pointerEvents: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.75rem',
+          maxWidth: '100%',
+        }}>
           <div style={{
-            display: 'flex',
-            gap: '0.5rem',
             background: 'var(--surface-1)',
-            padding: '0.5rem',
+            padding: '0.5rem 1.5rem',
             borderRadius: '12px',
             border: '1px solid var(--surface-border)',
             boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+            fontWeight: 'bold',
+            fontSize: '1.2rem',
+            color: 'var(--text-primary)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '1rem',
+            width: 'max-content'
           }}>
-            <input 
-              type="text"
-              placeholder="Search characters..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              style={{
-                padding: '0.5rem',
-                borderRadius: '8px',
-                border: '1px solid var(--surface-border)',
-                background: 'var(--bg-color)',
-                color: 'var(--text-primary)',
-                minWidth: '200px'
-              }}
-            />
-            <select
-              value={filterDynastyId}
-              onChange={e => setFilterDynastyId(e.target.value)}
-              style={{
-                padding: '0.5rem',
-                borderRadius: '8px',
-                border: '1px solid var(--surface-border)',
-                background: 'var(--bg-color)',
-                color: 'var(--text-primary)'
-              }}
-            >
-              <option value="">All Houses</option>
-              {dynasties.map(d => (
-                <option key={d.id} value={d.id}>{d.name} {d.branch ? `(${d.branch})` : ''}</option>
-              ))}
-            </select>
+            <span>{currentTreeName}</span>
+            <button onClick={() => setIsEditNameModalOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem' }}>✏️</button>
           </div>
           
-          {searchQuery && matchingCharacters.length > 0 && (
+          <div style={{ position: 'relative', width: 'max-content', maxWidth: '100%' }}>
             <div style={{
-              position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '0.5rem',
-              background: 'var(--surface-1)', borderRadius: '12px', border: '1px solid var(--surface-border)',
-              boxShadow: '0 4px 6px rgba(0,0,0,0.3)', overflow: 'hidden'
+              display: 'flex',
+              gap: '0.5rem',
+              background: 'var(--surface-1)',
+              padding: '0.5rem',
+              borderRadius: '12px',
+              border: '1px solid var(--surface-border)',
+              boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+              flexWrap: 'wrap'
             }}>
-              {matchingCharacters.map(c => {
-                const dyn = dynasties.find(d => d.id === c.data.dynastyId);
-                const houseName = dyn?.name || c.data.lastName || '';
-                return (
-                  <div 
-                    key={c.id} 
-                    onClick={() => handleGoToCharacter(c)}
-                    style={{ padding: '0.75rem 1rem', cursor: 'pointer', borderBottom: '1px solid var(--surface-border)', color: 'var(--text-primary)' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                  >
-                    🔍 {c.data.firstName} {houseName}
-                  </div>
-                );
-              })}
+              <input 
+                type="text"
+                placeholder="Search characters..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                style={{
+                  padding: '0.5rem',
+                  borderRadius: '8px',
+                  border: '1px solid var(--surface-border)',
+                  background: 'var(--bg-color)',
+                  color: 'var(--text-primary)',
+                  minWidth: '150px',
+                  flex: 1
+                }}
+              />
+              <select
+                value={filterDynastyId}
+                onChange={e => setFilterDynastyId(e.target.value)}
+                style={{
+                  padding: '0.5rem',
+                  borderRadius: '8px',
+                  border: '1px solid var(--surface-border)',
+                  background: 'var(--bg-color)',
+                  color: 'var(--text-primary)'
+                }}
+              >
+                <option value="">All Houses</option>
+                {dynasties.map(d => (
+                  <option key={d.id} value={d.id}>{d.name} {d.branch ? `(${d.branch})` : ''}</option>
+                ))}
+              </select>
             </div>
-          )}
+            
+            {searchQuery && matchingCharacters.length > 0 && (
+              <div style={{
+                position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '0.5rem',
+                background: 'var(--surface-1)', borderRadius: '12px', border: '1px solid var(--surface-border)',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.3)', overflow: 'hidden', zIndex: 50
+              }}>
+                {matchingCharacters.map(c => {
+                  const dyn = dynasties.find(d => d.id === c.data.dynastyId);
+                  const houseName = dyn?.name || c.data.lastName || '';
+                  return (
+                    <div 
+                      key={c.id} 
+                      onClick={() => handleGoToCharacter(c)}
+                      style={{ padding: '0.75rem 1rem', cursor: 'pointer', borderBottom: '1px solid var(--surface-border)', color: 'var(--text-primary)' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      🔍 {c.data.firstName} {houseName}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Save & Auth Buttons (Top Right) */}
-      <div style={{
-        position: 'absolute',
-        top: '24px',
-        right: (selectedNode || selectedEdge) ? '344px' : '24px',
-        zIndex: 100,
-        transition: 'right 0.2s ease-in-out',
-        display: 'flex',
-        gap: '0.5rem',
-        flexWrap: 'wrap',
-        justifyContent: 'flex-end',
-        maxWidth: (selectedNode || selectedEdge) ? 'calc(100vw - 680px)' : 'calc(100vw - 360px)'
-      }}>
-        {currentUser ? (
-          <>
-            <button onClick={handleNewTree} style={btnStyle}>New Tree</button>
-            <button onClick={() => setIsTreeListOpen(true)} style={btnStyle}>My Trees</button>
+        {/* Right Section: Auth & Actions */}
+        <div style={{
+          pointerEvents: 'auto',
+          display: 'flex',
+          gap: '0.5rem',
+          flexWrap: 'wrap',
+          justifyContent: 'flex-end',
+          maxWidth: '100%',
+          flex: '1 1 auto'
+        }}>
+          {currentUser ? (
+            <>
+              <button onClick={handleNewTree} style={btnStyle}>New Tree</button>
+              <button onClick={() => setIsTreeListOpen(true)} style={btnStyle}>My Trees</button>
+              <button 
+                onClick={async () => { await logout(); navigate('/login'); }} 
+                style={{...btnStyle, color: '#ef4444'}}
+              >
+                Logout
+              </button>
+            </>
+          ) : (
             <button 
-              onClick={async () => { await logout(); navigate('/login'); }} 
-              style={{...btnStyle, color: '#ef4444'}}
+              onClick={() => navigate('/login')} 
+              style={btnStyle}
             >
-              Logout
+              Login / Signup
             </button>
-          </>
-        ) : (
-          <button 
-            onClick={() => navigate('/login')} 
-            style={btnStyle}
-          >
-            Login / Signup
-          </button>
-        )}
+          )}
 
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <button onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} style={{ padding: '0.5rem 1rem', background: 'var(--surface-1)', border: '1px solid var(--surface-border)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer' }}>
-            {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
-          </button>
-          <button onClick={handleAutoLayout} style={{ padding: '0.5rem 1rem', background: 'var(--surface-1)', border: '1px solid var(--surface-border)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer' }}>
-            🪄 Auto-Layout
-          </button>
-          <button onClick={() => setIsExportModalOpen(true)} style={{ padding: '0.5rem 1rem', background: 'var(--surface-1)', border: '1px solid var(--surface-border)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer' }}>
-            🖼️ Export
-          </button>
-          <button onClick={handleShare} style={{ padding: '0.5rem 1rem', background: 'var(--surface-1)', border: '1px solid var(--surface-border)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer' }}>
-            🔗 Share
-          </button>
-          <button onClick={handleSave} disabled={isSaving} style={{ padding: '0.5rem 1rem', background: 'var(--accent-primary)', border: 'none', borderRadius: '8px', color: '#18181b', fontWeight: 600, cursor: isSaving ? 'not-allowed' : 'pointer' }}>
-            {isSaving ? 'Saving...' : '☁️ Save'}
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <button onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} style={{ padding: '0.5rem 1rem', background: 'var(--surface-1)', border: '1px solid var(--surface-border)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer' }}>
+              {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+            </button>
+            <button onClick={handleAutoLayout} style={{ padding: '0.5rem 1rem', background: 'var(--surface-1)', border: '1px solid var(--surface-border)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer' }}>
+              🪄 Auto-Layout
+            </button>
+            <button onClick={() => setIsExportModalOpen(true)} style={{ padding: '0.5rem 1rem', background: 'var(--surface-1)', border: '1px solid var(--surface-border)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer' }}>
+              🖼️ Export
+            </button>
+            <button onClick={handleShare} style={{ padding: '0.5rem 1rem', background: 'var(--surface-1)', border: '1px solid var(--surface-border)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer' }}>
+              🔗 Share
+            </button>
+            <button onClick={handleSave} disabled={isSaving} style={{ padding: '0.5rem 1rem', background: 'var(--accent-primary)', border: 'none', borderRadius: '8px', color: '#18181b', fontWeight: 600, cursor: isSaving ? 'not-allowed' : 'pointer' }}>
+              {isSaving ? 'Saving...' : '☁️ Save'}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
     </TreeContext.Provider>
   );
 }

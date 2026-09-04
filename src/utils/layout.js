@@ -52,7 +52,16 @@ export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
       if (node.type === 'waypoint') {
         dagreGraph.setNode(node.id, { width: 10, height: 10 });
       } else {
-        dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
+        // Find how many in-law spouses this node has
+        const spouseCount = horizontalEdges.filter(e => 
+          (e.source === node.id && inLawNodes.has(e.target)) || 
+          (e.target === node.id && inLawNodes.has(e.source))
+        ).length;
+        
+        // Inflate width to make room for spouses to the right
+        const effectiveWidth = nodeWidth + (spouseCount * HORIZONTAL_GAP);
+        // We need to store the effective width so we can offset correctly later
+        dagreGraph.setNode(node.id, { width: effectiveWidth, height: nodeHeight, spouseCount });
       }
     }
   });
@@ -69,16 +78,27 @@ export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
   const layoutedNodes = nodes.map((node) => {
     if (!inLawNodes.has(node.id)) {
       const nodeWithPosition = dagreGraph.node(node.id);
-      const width = node.type === 'waypoint' ? 10 : nodeWidth;
-      const height = node.type === 'waypoint' ? 10 : nodeHeight;
-
-      return {
-        ...node,
-        position: {
-          x: nodeWithPosition.x - width / 2,
-          y: nodeWithPosition.y - height / 2,
-        }
-      };
+      
+      if (node.type === 'waypoint') {
+        return {
+          ...node,
+          position: {
+            x: nodeWithPosition.x - 5,
+            y: nodeWithPosition.y - 5,
+          }
+        };
+      } else {
+        const effectiveWidth = nodeWidth + ((nodeWithPosition.spouseCount || 0) * HORIZONTAL_GAP);
+        // nodeWithPosition.x is the center of the inflated box.
+        // We want to place the actual node at the far left of this box.
+        return {
+          ...node,
+          position: {
+            x: nodeWithPosition.x - (effectiveWidth / 2),
+            y: nodeWithPosition.y - (nodeHeight / 2),
+          }
+        };
+      }
     }
     return node; // We will handle inLaws next
   });
