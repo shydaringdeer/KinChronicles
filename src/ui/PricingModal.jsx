@@ -151,7 +151,8 @@ export default function PricingModal({ isOpen, onClose, currentUser, subscriptio
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, flex: 1, color: 'var(--text-primary)', lineHeight: '2' }}>
               <li><span style={{ color: '#10b981' }}>✓</span> Everything in Free, plus:</li>
               <li><span style={{ color: '#10b981' }}>✓</span> <strong>Unlimited characters</strong> per tree</li>
-              <li><span style={{ color: '#10b981' }}>✓</span> <strong>Timeline Generation</strong> (Coming Soon)</li>
+              <li><span style={{ color: '#10b981' }}>✓</span> <strong>Timeline Builder</strong></li>
+              <li><span style={{ color: '#10b981' }}>✓</span> <strong>Custom Calendars</strong></li>
               <li><span style={{ color: '#10b981' }}>✓</span> <strong>Novel Writer Module</strong> (Coming Soon)</li>
               <li><span style={{ color: '#10b981' }}>✓</span> Priority Support</li>
             </ul>
