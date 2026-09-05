@@ -30,7 +30,7 @@ export default function HomeMenu() {
         Build beautiful, interactive fictional family trees online. Track lineages, marriages, and dynasties with ease.
       </p>
 
-      <div style={{ display: 'flex', gap: '1rem' }}>
+      <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
         <button 
           onClick={() => navigate('/tree')}
           style={{
@@ -44,6 +44,36 @@ export default function HomeMenu() {
           }}
         >
           Create New Tree
+        </button>
+        <button 
+          onClick={() => navigate('/timeline')}
+          style={{
+            padding: '1rem 2rem',
+            fontSize: '1.1rem',
+            fontWeight: 600,
+            background: 'linear-gradient(45deg, #f59e0b, #d97706)',
+            color: 'white',
+            border: 'none',
+            borderRadius: 'var(--radius-lg)',
+            boxShadow: '0 4px 15px rgba(245, 158, 11, 0.4)'
+          }}
+        >
+          👑 Timeline Builder
+        </button>
+        <button 
+          onClick={() => navigate('/calendar')}
+          style={{
+            padding: '1rem 2rem',
+            fontSize: '1.1rem',
+            fontWeight: 600,
+            background: 'linear-gradient(45deg, #8b5cf6, #6d28d9)',
+            color: 'white',
+            border: 'none',
+            borderRadius: 'var(--radius-lg)',
+            boxShadow: '0 4px 15px rgba(139, 92, 246, 0.4)'
+          }}
+        >
+          👑 Calendar Creator
         </button>
         <button 
           onClick={() => navigate('/login')}

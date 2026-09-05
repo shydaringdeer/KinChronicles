@@ -574,7 +574,6 @@ export default function TreeEditor() {
           transition: 'right 0.2s ease-in-out'
         }}
       >
-        <button onClick={() => navigate('/')} style={btnStyle}>Exit</button>
         <button onClick={() => setIsExportModalOpen(true)} style={btnStyle}>Export</button>
         <button onClick={onImportJson} style={btnStyle}>Import JSON</button>
         <input 
@@ -777,6 +776,9 @@ export default function TreeEditor() {
                   ⭐ Upgrade to Pro
                 </button>
               )}
+              <button onClick={() => navigate('/')} style={{...btnStyle, fontWeight: 'bold'}}>🏠 Home</button>
+              <button onClick={() => navigate('/timeline')} style={{...btnStyle, color: '#f59e0b'}}>👑 Timelines</button>
+              <button onClick={() => navigate('/calendar')} style={{...btnStyle, color: '#f59e0b'}}>👑 Calendars</button>
               <button onClick={handleNewTree} style={btnStyle}>New Tree</button>
               <button onClick={() => setIsTreeListOpen(true)} style={btnStyle}>My Trees</button>
               <button 

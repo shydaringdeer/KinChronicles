@@ -199,3 +199,81 @@ export const deleteImage = async (filePath) => {
     throw error;
   }
 };
+
+/**
+ * TIMELINES
+ */
+export const saveTimeline = async (userId, timelineId, name, data) => {
+  if (!userId) throw new Error("User not authenticated");
+  try {
+    let payload = {
+      user_id: userId,
+      name,
+      data,
+      updated_at: new Date().toISOString()
+    };
+    if (timelineId) {
+      const { data: res, error } = await supabase.from('timelines').update(payload).eq('id', timelineId).eq('user_id', userId).select().single();
+      if (error) throw error;
+      return res;
+    } else {
+      const { data: res, error } = await supabase.from('timelines').insert(payload).select().single();
+      if (error) throw error;
+      return res;
+    }
+  } catch (err) {
+    console.error("Error saving timeline:", err);
+    throw err;
+  }
+};
+
+export const loadTimelines = async (userId) => {
+  if (!userId) return [];
+  try {
+    const { data, error } = await supabase.from('timelines').select('*').eq('user_id', userId).order('updated_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.error("Error loading timelines:", err);
+    return [];
+  }
+};
+
+/**
+ * CALENDARS
+ */
+export const saveCalendar = async (userId, calendarId, name, data) => {
+  if (!userId) throw new Error("User not authenticated");
+  try {
+    let payload = {
+      user_id: userId,
+      name,
+      data,
+      updated_at: new Date().toISOString()
+    };
+    if (calendarId) {
+      const { data: res, error } = await supabase.from('calendars').update(payload).eq('id', calendarId).eq('user_id', userId).select().single();
+      if (error) throw error;
+      return res;
+    } else {
+      const { data: res, error } = await supabase.from('calendars').insert(payload).select().single();
+      if (error) throw error;
+      return res;
+    }
+  } catch (err) {
+    console.error("Error saving calendar:", err);
+    throw err;
+  }
+};
+
+export const loadCalendars = async (userId) => {
+  if (!userId) return [];
+  try {
+    const { data, error } = await supabase.from('calendars').select('*').eq('user_id', userId).order('updated_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.error("Error loading calendars:", err);
+    return [];
+  }
+};
