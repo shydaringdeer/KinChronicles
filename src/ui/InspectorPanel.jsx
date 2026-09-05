@@ -4,7 +4,7 @@ import { uploadImage } from '../state/db';
 import ImageGalleryModal from './ImageGalleryModal';
 
 export default function InspectorPanel({ currentUser, selectedNode, selectedEdge, onUpdateNode, onUpdateEdge, onDeleteNode, onDeleteEdge, onClose }) {
-  const { dynasties, setDynasties } = useContext(TreeContext);
+  const { dynasties, setDynasties, baseCalendarId, userCalendars } = useContext(TreeContext);
   const [editingDynastyId, setEditingDynastyId] = useState(null); // null, 'new', or dynasty.id
   const [newDynasty, setNewDynasty] = useState({ name: '', branch: '', coaUrl: '' });
   const [isUploading, setIsUploading] = useState(false);
@@ -315,6 +315,63 @@ export default function InspectorPanel({ currentUser, selectedNode, selectedEdge
     onUpdateNode(selectedNode.id, { [name]: value });
   };
 
+  const baseCalendar = userCalendars?.find(c => c.id === baseCalendarId);
+  const calendarMonths = baseCalendar?.data?.months || [];
+
+  const handleStructuredDateChange = (fieldName, fieldProp, value) => {
+    const current = data[fieldName] || { year: '', monthId: '', day: '' };
+    onUpdateNode(selectedNode.id, { 
+      [fieldName]: { ...current, [fieldProp]: value } 
+    });
+  };
+
+  const renderDateInput = (label, stringFieldName, structFieldName, placeholder) => {
+    if (baseCalendarId) {
+      const val = data[structFieldName] || { year: '', monthId: '', day: '' };
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1, minWidth: 0 }}>
+          <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600, whiteSpace: 'nowrap' }}>{label}</label>
+          <div style={{ display: 'flex', gap: '0.25rem' }}>
+            <input 
+              type="number" placeholder="Year" value={val.year}
+              onChange={e => handleStructuredDateChange(structFieldName, 'year', parseInt(e.target.value) || 0)}
+              style={{ width: '4rem', padding: '0.5rem', background: 'var(--bg-color)', border: '1px solid var(--surface-border)', borderRadius: '4px', color: 'var(--text-primary)' }}
+            />
+            <select
+              value={val.monthId}
+              onChange={e => handleStructuredDateChange(structFieldName, 'monthId', e.target.value)}
+              style={{ flex: 1, padding: '0.5rem', background: 'var(--bg-color)', border: '1px solid var(--surface-border)', borderRadius: '4px', color: 'var(--text-primary)', minWidth: 0 }}
+            >
+              <option value="">Month</option>
+              {calendarMonths.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+            </select>
+            <input 
+              type="number" placeholder="Day" value={val.day}
+              onChange={e => {
+                const selectedMonth = calendarMonths.find(m => m.id.toString() === val.monthId);
+                const maxDays = selectedMonth ? selectedMonth.days : 31;
+                let dayVal = parseInt(e.target.value) || 1;
+                if (dayVal > maxDays) dayVal = maxDays;
+                handleStructuredDateChange(structFieldName, 'day', dayVal);
+              }}
+              style={{ width: '3.5rem', padding: '0.5rem', background: 'var(--bg-color)', border: '1px solid var(--surface-border)', borderRadius: '4px', color: 'var(--text-primary)' }}
+            />
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1, minWidth: 0 }}>
+        <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600, whiteSpace: 'nowrap' }}>{label}</label>
+        <input 
+          type="text" name={stringFieldName} value={data[stringFieldName] || ''} onChange={handleChange} placeholder={placeholder}
+          style={{ padding: '0.75rem', borderRadius: '8px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--surface-border)', color: 'var(--text-primary)', fontSize: '1rem', fontFamily: 'var(--font-body)', minWidth: 0 }}
+        />
+      </div>
+    );
+  };
+
   return (
     <div 
       style={{
@@ -568,85 +625,13 @@ export default function InspectorPanel({ currentUser, selectedNode, selectedEdge
       </div>
 
       <div style={{ display: 'flex', gap: '1rem' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
-          <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>Birth Year</label>
-          <input 
-            type="text" 
-            name="birthYear"
-            value={data.birthYear || ''} 
-            onChange={handleChange}
-            placeholder="e.g. 1066"
-            style={{
-              padding: '0.75rem',
-              borderRadius: '8px',
-              backgroundColor: 'var(--bg-color)',
-              border: '1px solid var(--surface-border)',
-              color: 'var(--text-primary)',
-              fontSize: '1rem',
-              fontFamily: 'var(--font-body)'
-            }}
-          />
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
-          <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>Death Year</label>
-          <input 
-            type="text" 
-            name="deathYear"
-            value={data.deathYear || ''} 
-            onChange={handleChange}
-            placeholder="e.g. 1100"
-            style={{
-              padding: '0.75rem',
-              borderRadius: '8px',
-              backgroundColor: 'var(--bg-color)',
-              border: '1px solid var(--surface-border)',
-              color: 'var(--text-primary)',
-              fontSize: '1rem',
-              fontFamily: 'var(--font-body)'
-            }}
-          />
-        </div>
+        {renderDateInput('Birth', 'birthYear', 'structuredBirthDate', 'e.g. 1066')}
+        {renderDateInput('Death', 'deathYear', 'structuredDeathDate', 'e.g. 1100')}
       </div>
 
       <div style={{ display: 'flex', gap: '1rem' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
-          <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>Reign Start</label>
-          <input 
-            type="text" 
-            name="reignStart"
-            value={data.reignStart || ''} 
-            onChange={handleChange}
-            placeholder="e.g. 1080"
-            style={{
-              padding: '0.75rem',
-              borderRadius: '8px',
-              backgroundColor: 'var(--bg-color)',
-              border: '1px solid var(--surface-border)',
-              color: 'var(--text-primary)',
-              fontSize: '1rem',
-              fontFamily: 'var(--font-body)'
-            }}
-          />
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
-          <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>Reign End</label>
-          <input 
-            type="text" 
-            name="reignEnd"
-            value={data.reignEnd || ''} 
-            onChange={handleChange}
-            placeholder="e.g. 1100"
-            style={{
-              padding: '0.75rem',
-              borderRadius: '8px',
-              backgroundColor: 'var(--bg-color)',
-              border: '1px solid var(--surface-border)',
-              color: 'var(--text-primary)',
-              fontSize: '1rem',
-              fontFamily: 'var(--font-body)'
-            }}
-          />
-        </div>
+        {renderDateInput('Reign Start', 'reignStart', 'structuredReignStart', 'e.g. 1080')}
+        {renderDateInput('Reign End', 'reignEnd', 'structuredReignEnd', 'e.g. 1100')}
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>

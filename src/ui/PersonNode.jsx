@@ -40,20 +40,47 @@ const toRoman = (num) => {
 
 const PersonNode = ({ id, data, selected }) => {
   const { setNodes, setEdges, getNode } = useReactFlow();
-  const { dynasties } = useContext(TreeContext);
+  const { dynasties, baseCalendarId, userCalendars } = useContext(TreeContext);
 
   const dynasty = dynasties?.find(d => d.id === data.dynastyId);
+  const baseCalendar = userCalendars?.find(c => c.id === baseCalendarId);
+  const months = baseCalendar?.data?.months || [];
 
-  const birth = parseInt(data.birthYear);
-  const death = parseInt(data.deathYear);
+  const getOrdinal = (n) => {
+    const s = ["th", "st", "nd", "rd"];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  };
+
+  const formatDate = (structDate, fallbackStr) => {
+    if (baseCalendarId && structDate && structDate.year !== undefined) {
+      const m = months.find(x => x.id.toString() === structDate.monthId);
+      const monthStr = m ? m.name : '';
+      const dayStr = structDate.day ? getOrdinal(structDate.day) + ' of ' : '';
+      return `${dayStr}${monthStr} ${structDate.year}`.trim();
+    }
+    return fallbackStr;
+  };
+
+  const hasStructBirth = baseCalendarId && data.structuredBirthDate && data.structuredBirthDate.year !== undefined && data.structuredBirthDate.year !== '';
+  const hasStructDeath = baseCalendarId && data.structuredDeathDate && data.structuredDeathDate.year !== undefined && data.structuredDeathDate.year !== '';
+  const bYear = hasStructBirth ? parseInt(data.structuredBirthDate.year) : parseInt(data.birthYear);
+  const dYear = hasStructDeath ? parseInt(data.structuredDeathDate.year) : parseInt(data.deathYear);
+
   let ageString = '';
-  if (!isNaN(birth) && !isNaN(death)) {
-    ageString = `${birth} - ${death} (Age ${death - birth})`;
-  } else if (!isNaN(birth)) {
-    ageString = `b. ${birth}`;
-  } else if (!isNaN(death)) {
-    ageString = `d. ${death}`;
+  const formattedBirth = formatDate(data.structuredBirthDate, data.birthYear);
+  const formattedDeath = formatDate(data.structuredDeathDate, data.deathYear);
+
+  if (!isNaN(bYear) && !isNaN(dYear)) {
+    ageString = `${formattedBirth} - ${formattedDeath} (Age ${dYear - bYear})`;
+  } else if (formattedBirth && !isNaN(bYear)) {
+    ageString = `b. ${formattedBirth}`;
+  } else if (formattedDeath && !isNaN(dYear)) {
+    ageString = `d. ${formattedDeath}`;
   }
+
+  const formattedReignStart = formatDate(data.structuredReignStart, data.reignStart);
+  const formattedReignEnd = formatDate(data.structuredReignEnd, data.reignEnd);
 
   const colorMap = {
     default: 'var(--surface-border)',
@@ -217,9 +244,9 @@ const PersonNode = ({ id, data, selected }) => {
           </p>
         )}
 
-        {(data.reignStart || data.reignEnd) && (
+        {(formattedReignStart || formattedReignEnd) && (
           <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: '#fbbf24', fontWeight: 600 }}>
-            👑 {data.reignStart || '?'} - {data.reignEnd || '?'}
+            👑 {formattedReignStart || '?'} - {formattedReignEnd || '?'}
           </p>
         )}
         

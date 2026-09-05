@@ -3,14 +3,14 @@ import { supabase } from './supabase';
 /**
  * Save a family tree to Supabase
  */
-export const saveTree = async (userId, treeId, name, nodes, edges, dynasties = []) => {
+export const saveTree = async (userId, treeId, name, nodes, edges, dynasties = [], baseCalendarId = null) => {
   if (!userId) throw new Error("User not authenticated");
   
   try {
     let payload = {
       user_id: userId,
       name,
-      data: { nodes, edges, dynasties },
+      data: { nodes, edges, dynasties, baseCalendarId },
       updated_at: new Date().toISOString()
     };
 

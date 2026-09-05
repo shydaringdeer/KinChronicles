@@ -16,7 +16,7 @@ import ExportModal from './ExportModal';
 import WaypointNode from './WaypointNode';
 import DraggableEdge from './DraggableEdge';
 import { supabase, logout, getUserProfile } from '../state/supabase';
-import { saveTree, loadTree, shareTree } from '../state/db';
+import { saveTree, loadTree, shareTree, loadCalendars } from '../state/db';
 import TreeListModal from './TreeListModal';
 import PricingModal from './PricingModal';
 import { TreeContext } from './TreeContext';
@@ -31,6 +31,8 @@ export default function TreeEditor() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [dynasties, setDynasties] = useState([]);
+  const [baseCalendarId, setBaseCalendarId] = useState('');
+  const [userCalendars, setUserCalendars] = useState([]);
   const [selectedNodeId, setSelectedNodeId] = useState(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -63,6 +65,9 @@ export default function TreeEditor() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setCurrentUser(session?.user || null);
+      if (session?.user) {
+        loadCalendars(session.user.id).then(cals => setUserCalendars(cals));
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -87,6 +92,7 @@ export default function TreeEditor() {
       setNodes(initialNodes);
       setEdges(initialEdges);
       setDynasties([]);
+      setBaseCalendarId('');
       setCurrentTreeId(null);
       setCurrentTreeName('Untitled Tree');
     }
@@ -97,6 +103,7 @@ export default function TreeEditor() {
       setNodes([{ id: '1', type: 'person', data: { firstName: 'New', lastName: 'Character', gender: 'unknown' }, position: { x: 250, y: 250 } }]);
       setEdges([]);
       setDynasties([]);
+      setBaseCalendarId('');
       setCurrentTreeId(null);
       setCurrentTreeName(name || 'Untitled Tree');
       setIsTreeListOpen(false);
@@ -109,6 +116,7 @@ export default function TreeEditor() {
         setNodes(data.data.nodes);
         setEdges(data.data.edges || []);
         setDynasties(data.data.dynasties || []);
+        setBaseCalendarId(data.data.baseCalendarId || '');
         setCurrentTreeId(id);
         setCurrentTreeName(name);
         setIsTreeListOpen(false);
@@ -132,7 +140,7 @@ export default function TreeEditor() {
 
     setIsSaving(true);
     try {
-      const savedTree = await saveTree(currentUser.id, currentTreeId, nameToSave, nodes, edges, dynasties);
+      const savedTree = await saveTree(currentUser.id, currentTreeId, nameToSave, nodes, edges, dynasties, baseCalendarId);
       setCurrentTreeId(savedTree.id);
       setCurrentTreeName(savedTree.name);
       alert("Tree saved successfully!");
@@ -515,7 +523,7 @@ export default function TreeEditor() {
   };
 
   return (
-    <TreeContext.Provider value={{ dynasties, setDynasties }}>
+    <TreeContext.Provider value={{ dynasties, setDynasties, baseCalendarId, setBaseCalendarId, userCalendars }}>
       <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
       <ReactFlow
         nodes={displayNodes}
@@ -735,6 +743,22 @@ export default function TreeEditor() {
                 <option value="">All Houses</option>
                 {dynasties.map(d => (
                   <option key={d.id} value={d.id}>{d.name} {d.branch ? `(${d.branch})` : ''}</option>
+                ))}
+              </select>
+              <select
+                value={baseCalendarId}
+                onChange={e => setBaseCalendarId(e.target.value)}
+                style={{
+                  padding: '0.5rem',
+                  borderRadius: '8px',
+                  border: '1px solid var(--surface-border)',
+                  background: 'var(--bg-color)',
+                  color: 'var(--text-primary)'
+                }}
+              >
+                <option value="">Standard Calendar</option>
+                {userCalendars.map(cal => (
+                  <option key={cal.id} value={cal.id}>{cal.name}</option>
                 ))}
               </select>
             </div>
