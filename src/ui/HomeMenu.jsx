@@ -7,89 +7,127 @@ export default function HomeMenu() {
   return (
     <div style={{
       width: '100vw',
-      height: '100vh',
+      minHeight: '100vh',
       display: 'flex',
       flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
       background: 'var(--bg-color)',
-      color: 'var(--text-primary)',
-      padding: '2rem'
+      color: 'var(--text-primary)'
     }}>
-      <h1 style={{ 
-        fontSize: '4rem', 
-        marginBottom: '1rem', 
-        textAlign: 'center',
-        background: 'linear-gradient(45deg, var(--accent-primary), var(--accent-secondary))',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent'
-      }}>
-        KinChronicles
-      </h1>
-      <p style={{ fontSize: '1.2rem', color: 'var(--text-secondary)', marginBottom: '3rem', textAlign: 'center', maxWidth: '600px' }}>
-        Build beautiful, interactive fictional family trees online. Track lineages, marriages, and dynasties with ease.
-      </p>
-
-      <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-        <button 
-          onClick={() => navigate('/tree')}
-          style={{
-            padding: '1rem 2rem',
-            fontSize: '1.1rem',
-            fontWeight: 600,
-            background: 'var(--text-primary)',
-            color: 'var(--bg-color)',
-            borderRadius: 'var(--radius-lg)',
-            boxShadow: '0 4px 15px rgba(255,255,255,0.1)'
-          }}
-        >
-          Create New Tree
-        </button>
-        <button 
-          onClick={() => navigate('/timeline')}
-          style={{
-            padding: '1rem 2rem',
-            fontSize: '1.1rem',
-            fontWeight: 600,
-            background: 'linear-gradient(45deg, #f59e0b, #d97706)',
-            color: 'white',
-            border: 'none',
-            borderRadius: 'var(--radius-lg)',
-            boxShadow: '0 4px 15px rgba(245, 158, 11, 0.4)'
-          }}
-        >
-          👑 Timeline Builder
-        </button>
-        <button 
-          onClick={() => navigate('/calendar')}
-          style={{
-            padding: '1rem 2rem',
-            fontSize: '1.1rem',
-            fontWeight: 600,
-            background: 'linear-gradient(45deg, #8b5cf6, #6d28d9)',
-            color: 'white',
-            border: 'none',
-            borderRadius: 'var(--radius-lg)',
-            boxShadow: '0 4px 15px rgba(139, 92, 246, 0.4)'
-          }}
-        >
-          👑 Calendar Creator
-        </button>
+      {/* Navigation Bar */}
+      <nav className="nav-bar">
+        <div className="nav-brand">KinChronicles</div>
         <button 
           onClick={() => navigate('/login')}
-          style={{
-            padding: '1rem 2rem',
-            fontSize: '1.1rem',
-            fontWeight: 600,
-            background: 'var(--surface-1)',
-            color: 'var(--text-primary)',
-            border: '1px solid var(--surface-border)',
-            borderRadius: 'var(--radius-lg)'
-          }}
+          className="btn btn-secondary"
         >
           Login / Sign Up
         </button>
-      </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="hero-section">
+        <div className="hero-bg"></div>
+        <h1 className="hero-title">Forge Your Dynasty's Legacy</h1>
+        <p className="hero-subtitle">
+          Build beautiful, interactive fictional family trees online. Track lineages, alliances, marriages, and dynasties with a sleek, professional interface built for worldbuilders.
+        </p>
+        
+        <div className="hero-cta-container">
+          <button 
+            onClick={() => navigate('/tree')}
+            className="btn btn-primary"
+            style={{ padding: '1rem 2rem', fontSize: '1.2rem' }}
+          >
+            Start Building Free
+          </button>
+          <button 
+            onClick={() => {
+              document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="btn btn-secondary"
+            style={{ padding: '1rem 2rem', fontSize: '1.2rem' }}
+          >
+            Explore Features
+          </button>
+        </div>
+
+
+      </section>
+
+      {/* Features Section */}
+      <section id="features" className="features-section">
+        <h2 style={{ textAlign: 'center', fontSize: '2.5rem', marginBottom: '1rem' }}>
+          Everything You Need to Worldbuild
+        </h2>
+        <p style={{ textAlign: 'center', color: 'var(--text-secondary)', maxWidth: '600px', margin: '0 auto' }}>
+          From sprawling royal lineages to intricate timelines, our tools are designed to bring your fictional worlds to life.
+        </p>
+
+        <div className="features-grid">
+          {/* Feature 1 */}
+          <div className="feature-card">
+            <div className="feature-icon">🌳</div>
+            <h3 className="feature-title">Interactive Family Trees</h3>
+            <p className="feature-desc">
+              Visually map out complex bloodlines, marriages, and cadet branches. Add portraits, biographies, and custom house crests to every character.
+            </p>
+            <button 
+              onClick={() => navigate('/tree')}
+              className="btn btn-primary"
+              style={{ alignSelf: 'flex-start' }}
+            >
+              Open Tree Builder
+            </button>
+          </div>
+
+          {/* Feature 2 */}
+          <div className="feature-card pro">
+            <div className="feature-icon">👑</div>
+            <h3 className="feature-title">Timeline Builder</h3>
+            <p className="feature-desc">
+              Track historical events, eras, and reign lengths. Correlate your family tree characters with specific moments in your world's history.
+            </p>
+            <button 
+              onClick={() => navigate('/timeline')}
+              className="btn btn-secondary"
+              style={{ alignSelf: 'flex-start', background: 'linear-gradient(45deg, #f59e0b, #d97706)', color: 'white', border: 'none' }}
+            >
+              Explore Timelines (Pro)
+            </button>
+          </div>
+
+          {/* Feature 3 */}
+          <div className="feature-card pro">
+            <div className="feature-icon">📅</div>
+            <h3 className="feature-title">Custom Calendars</h3>
+            <p className="feature-desc">
+              Design bespoke calendar systems with custom months, days, and eras. Assign exact dates to character births, deaths, and reigns.
+            </p>
+            <button 
+              onClick={() => navigate('/calendar')}
+              className="btn btn-secondary"
+              style={{ alignSelf: 'flex-start', background: 'linear-gradient(45deg, #8b5cf6, #6d28d9)', color: 'white', border: 'none' }}
+            >
+              Create Calendars (Pro)
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer style={{
+        marginTop: 'auto',
+        padding: '3rem 2rem',
+        borderTop: '1px solid var(--surface-border)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '1rem',
+        color: 'var(--text-muted)'
+      }}>
+        <div className="nav-brand" style={{ fontSize: '1.2rem' }}>KinChronicles</div>
+        <p>© {new Date().getFullYear()} KinChronicles. All rights reserved.</p>
+      </footer>
     </div>
   );
 }
