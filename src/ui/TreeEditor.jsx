@@ -93,6 +93,16 @@ export default function TreeEditor() {
   };
 
   const handleSelectTree = async (id, name) => {
+    if (!id) {
+      setNodes([{ id: '1', type: 'person', data: { firstName: 'New', lastName: 'Character', gender: 'unknown' }, position: { x: 250, y: 250 } }]);
+      setEdges([]);
+      setDynasties([]);
+      setCurrentTreeId(null);
+      setCurrentTreeName(name || 'Untitled Tree');
+      setIsTreeListOpen(false);
+      return;
+    }
+    
     try {
       const data = await loadTree(id, currentUser.id);
       if (data && data.data && data.data.nodes) {

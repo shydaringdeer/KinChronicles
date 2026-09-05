@@ -49,7 +49,15 @@ export default function TreeListModal({ currentUser, onClose, onSelect }) {
           fontSize: '1.2rem', cursor: 'pointer'
         }}>✕</button>
 
-        <h2 style={{ marginTop: 0, marginBottom: '1.5rem' }}>My Family Trees</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', marginTop: 0 }}>
+          <h2 style={{ margin: 0 }}>My Family Trees</h2>
+          <button 
+            onClick={() => onSelect(null, 'Untitled Tree')} 
+            style={{ background: 'var(--surface-border)', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9rem' }}
+          >
+            + New
+          </button>
+        </div>
 
         {loading && <p>Loading trees...</p>}
         {error && <p style={{ color: '#ef4444' }}>{error}</p>}

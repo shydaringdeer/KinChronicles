@@ -18,7 +18,6 @@ export default function CalendarEditor() {
     { id: 1, name: 'Month 1', days: 30 }
   ]);
   const [daysOfWeek, setDaysOfWeek] = useState(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
-  const [eras, setEras] = useState([{ id: 1, name: 'First Era', startYear: 0 }]);
   
   const [isSaving, setIsSaving] = useState(false);
 
@@ -47,7 +46,7 @@ export default function CalendarEditor() {
     if (!currentUser) return alert("Must be logged in to save.");
     setIsSaving(true);
     try {
-      const dataToSave = { months, daysOfWeek, eras };
+      const dataToSave = { months, daysOfWeek };
       const saved = await saveCalendar(currentUser.id, currentCalendarId, name, dataToSave);
       setCurrentCalendarId(saved.id);
       alert("Calendar saved successfully!");
@@ -65,7 +64,6 @@ export default function CalendarEditor() {
     if (cal.data) {
       setMonths(cal.data.months || []);
       setDaysOfWeek(cal.data.daysOfWeek || []);
-      setEras(cal.data.eras || []);
     }
   };
 
@@ -155,7 +153,20 @@ export default function CalendarEditor() {
           {/* Load Existing */}
           {calendars.length > 0 && (
             <div>
-              <h3 style={{ margin: 0, color: 'var(--text-secondary)', marginBottom: '1rem' }}>Your Calendars</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3 style={{ margin: 0, color: 'var(--text-secondary)' }}>Your Calendars</h3>
+                <button 
+                  onClick={() => {
+                    setCurrentCalendarId(null);
+                    setName('Untitled Calendar');
+                    setMonths([{ id: 1, name: 'Month 1', days: 30 }]);
+                    setDaysOfWeek(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
+                  }} 
+                  style={{ background: 'var(--surface-border)', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
+                >
+                  + New
+                </button>
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {calendars.map(cal => (
                   <button 

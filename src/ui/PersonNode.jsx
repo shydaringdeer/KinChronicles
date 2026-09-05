@@ -21,6 +21,23 @@ const btnStyle = {
   boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
 };
 
+const toRoman = (num) => {
+  if (isNaN(num) || num < 1 || num > 3999) return '';
+  const roman = {
+    M: 1000, CM: 900, D: 500, CD: 400,
+    C: 100, XC: 90, L: 50, XL: 40,
+    X: 10, IX: 9, V: 5, IV: 4, I: 1
+  };
+  let str = '';
+  let n = parseInt(num);
+  for (let i of Object.keys(roman)) {
+    let q = Math.floor(n / roman[i]);
+    n -= q * roman[i];
+    str += i.repeat(q);
+  }
+  return str;
+};
+
 const PersonNode = ({ id, data, selected }) => {
   const { setNodes, setEdges, getNode } = useReactFlow();
   const { dynasties } = useContext(TreeContext);
@@ -178,7 +195,7 @@ const PersonNode = ({ id, data, selected }) => {
         )}
         
         <h3 style={{ margin: dynasty?.coaUrl && !data.portraitUrl ? '16px 0 0' : 0, fontSize: '1.1rem', fontWeight: 600 }}>
-          {data.firstName || 'New'} {dynasty?.name || data.lastName || 'Person'}
+          {data.firstName || 'New'} {data.regnalNumber ? toRoman(data.regnalNumber) + ' ' : ''}{dynasty?.name || data.lastName || 'Person'}
         </h3>
         
         {(dynasty?.name || data.lastName) && (

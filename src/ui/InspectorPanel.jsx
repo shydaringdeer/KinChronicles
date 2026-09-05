@@ -398,14 +398,31 @@ export default function InspectorPanel({ currentUser, selectedNode, selectedEdge
           style={{
             padding: '0.75rem',
             borderRadius: '8px',
-            backgroundColor: 'var(--bg-color)',
             border: '1px solid var(--surface-border)',
-            color: 'var(--text-primary)',
-            fontSize: '1rem',
-            fontFamily: 'var(--font-body)'
+            background: 'var(--bg-color)',
+            color: 'var(--text-primary)'
           }}
         />
       </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>Regnal Number</label>
+        <input 
+          type="number" 
+          name="regnalNumber"
+          value={data.regnalNumber || ''} 
+          onChange={handleChange}
+          placeholder="e.g. 1, 2, 3..."
+          style={{
+            padding: '0.75rem',
+            borderRadius: '8px',
+            border: '1px solid var(--surface-border)',
+            background: 'var(--bg-color)',
+            color: 'var(--text-primary)'
+          }}
+        />
+      </div>
+
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

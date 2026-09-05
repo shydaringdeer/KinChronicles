@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, getUserProfile } from '../state/supabase';
-import { saveTimeline, loadTimelines, loadTrees, loadCalendars } from '../state/db';
+import { saveTimeline, loadTimelines, loadTrees, loadCalendars, loadTree } from '../state/db';
 import ProPaywall from './ProPaywall';
 
 export default function TimelineEditor() {
@@ -15,6 +15,7 @@ export default function TimelineEditor() {
   const [currentTimelineId, setCurrentTimelineId] = useState(null);
   const [name, setName] = useState('Untitled Timeline');
   const [events, setEvents] = useState([]);
+  const [eras, setEras] = useState([]);
   const [baseCalendarId, setBaseCalendarId] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -24,6 +25,7 @@ export default function TimelineEditor() {
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const [eventToLink, setEventToLink] = useState(null); // ID of the event being linked
   const [selectedTreeId, setSelectedTreeId] = useState('');
+  const [selectedTreeData, setSelectedTreeData] = useState(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -42,6 +44,20 @@ export default function TimelineEditor() {
     });
   }, []);
 
+  useEffect(() => {
+    if (selectedTreeId && currentUser) {
+      loadTree(selectedTreeId, currentUser.id).then(tree => {
+        if (tree && tree.data) {
+          setSelectedTreeData(tree.data);
+        } else {
+          setSelectedTreeData(null);
+        }
+      });
+    } else {
+      setSelectedTreeData(null);
+    }
+  }, [selectedTreeId, currentUser]);
+
   const loadUserTimelines = async (userId) => {
     const data = await loadTimelines(userId);
     setTimelines(data);
@@ -52,7 +68,7 @@ export default function TimelineEditor() {
     if (!currentUser) return alert("Must be logged in to save.");
     setIsSaving(true);
     try {
-      const saved = await saveTimeline(currentUser.id, currentTimelineId, name, { events, baseCalendarId });
+      const saved = await saveTimeline(currentUser.id, currentTimelineId, name, { events, baseCalendarId, eras });
       setCurrentTimelineId(saved.id);
       alert("Timeline saved successfully!");
       loadUserTimelines(currentUser.id);
@@ -69,6 +85,7 @@ export default function TimelineEditor() {
     if (timeline.data) {
       setEvents(timeline.data.events || []);
       setBaseCalendarId(timeline.data.baseCalendarId || '');
+      setEras(timeline.data.eras || []);
     }
   };
 
@@ -77,10 +94,14 @@ export default function TimelineEditor() {
       id: Date.now(), 
       title: 'New Event', 
       date: 'Year 0', 
-      structuredDate: { eraId: '', year: 0, monthId: '', day: 1 },
+      structuredDate: { year: 0, monthId: '', day: 1 },
       description: '', 
       linkedCharacter: null 
     }]);
+  };
+
+  const addEra = () => {
+    setEras([...eras, { id: Date.now(), name: `Era ${eras.length + 1}`, startYear: 0, endYear: 1000 }]);
   };
 
   const handleLinkCharacter = (eventId) => {
@@ -89,15 +110,29 @@ export default function TimelineEditor() {
     setIsLinkModalOpen(true);
   };
 
+  const toRoman = (num) => {
+    if (isNaN(num) || num < 1 || num > 3999) return '';
+    const roman = { M: 1000, CM: 900, D: 500, CD: 400, C: 100, XC: 90, L: 50, XL: 40, X: 10, IX: 9, V: 5, IV: 4, I: 1 };
+    let str = '';
+    let n = parseInt(num);
+    for (let i of Object.keys(roman)) {
+      let q = Math.floor(n / roman[i]);
+      n -= q * roman[i];
+      str += i.repeat(q);
+    }
+    return str;
+  };
+
   const confirmLink = (character) => {
     setEvents(events.map(ev => {
       if (ev.id === eventToLink) {
+        const regnal = character.data.regnalNumber ? `${toRoman(character.data.regnalNumber)} ` : '';
         return { 
           ...ev, 
           linkedCharacter: { 
             treeId: selectedTreeId, 
             id: character.id, 
-            name: `${character.data.firstName} ${character.data.lastName || ''}`.trim(),
+            name: `${character.data.firstName} ${regnal}${character.data.lastName || ''}`.trim(),
             portraitUrl: character.data.portraitUrl
           } 
         };
@@ -114,7 +149,6 @@ export default function TimelineEditor() {
 
   const baseCalendar = userCalendars.find(c => c.id === baseCalendarId);
   const calendarMonths = baseCalendar?.data?.months || [];
-  const calendarEras = baseCalendar?.data?.eras || [];
 
   const sortEvents = () => {
     if (!baseCalendarId) {
@@ -126,10 +160,6 @@ export default function TimelineEditor() {
       // Push non-structured events to the bottom
       if (!a.structuredDate) return 1;
       if (!b.structuredDate) return -1;
-      
-      const eraA = calendarEras.findIndex(e => e.id.toString() === a.structuredDate.eraId);
-      const eraB = calendarEras.findIndex(e => e.id.toString() === b.structuredDate.eraId);
-      if (eraA !== eraB) return eraA - eraB;
       
       if (a.structuredDate.year !== b.structuredDate.year) return (a.structuredDate.year || 0) - (b.structuredDate.year || 0);
       
@@ -180,9 +210,78 @@ export default function TimelineEditor() {
             </select>
           </div>
 
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ margin: 0, color: 'var(--text-secondary)' }}>Timeline Eras</h3>
+              <button onClick={addEra} style={{ background: 'var(--surface-border)', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}>+ Add</button>
+            </div>
+            {eras.length === 0 && <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No eras defined.</div>}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {eras.map((era, index) => (
+                <div key={era.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', background: 'rgba(0,0,0,0.2)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--surface-border)' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <input 
+                      type="text" 
+                      value={era.name}
+                      onChange={(e) => {
+                        const newEras = [...eras];
+                        newEras[index].name = e.target.value;
+                        setEras(newEras);
+                      }}
+                      placeholder="Era Name"
+                      style={{ flex: 1, padding: '0.5rem', background: 'var(--bg-color)', border: '1px solid var(--surface-border)', borderRadius: '4px', color: 'white' }}
+                    />
+                    <button 
+                      onClick={() => setEras(eras.filter(x => x.id !== era.id))}
+                      style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                    >✕</button>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <input 
+                      type="number" 
+                      value={era.startYear}
+                      onChange={(e) => {
+                        const newEras = [...eras];
+                        newEras[index].startYear = parseInt(e.target.value) || 0;
+                        setEras(newEras);
+                      }}
+                      placeholder="Start Year"
+                      style={{ width: '50%', padding: '0.5rem', background: 'var(--bg-color)', border: '1px solid var(--surface-border)', borderRadius: '4px', color: 'white' }}
+                    />
+                    <input 
+                      type="number" 
+                      value={era.endYear}
+                      onChange={(e) => {
+                        const newEras = [...eras];
+                        newEras[index].endYear = parseInt(e.target.value) || 0;
+                        setEras(newEras);
+                      }}
+                      placeholder="End Year"
+                      style={{ width: '50%', padding: '0.5rem', background: 'var(--bg-color)', border: '1px solid var(--surface-border)', borderRadius: '4px', color: 'white' }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {timelines.length > 0 && (
             <div>
-              <h3 style={{ margin: 0, color: 'var(--text-secondary)', marginBottom: '1rem' }}>Your Timelines</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3 style={{ margin: 0, color: 'var(--text-secondary)' }}>Your Timelines</h3>
+                <button 
+                  onClick={() => {
+                    setCurrentTimelineId(null);
+                    setName('Untitled Timeline');
+                    setEvents([]);
+                    setEras([]);
+                    setBaseCalendarId('');
+                  }} 
+                  style={{ background: 'var(--surface-border)', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
+                >
+                  + New
+                </button>
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {timelines.map(tl => (
                   <button 
@@ -235,12 +334,29 @@ export default function TimelineEditor() {
           {events.length === 0 && (
             <div style={{ color: 'var(--text-muted)' }}>No events yet. Click "Add Event" to begin.</div>
           )}
-          {events.map((ev, index) => (
-            <div key={ev.id} style={{ position: 'relative', background: 'var(--surface-1)', border: '1px solid var(--surface-border)', borderRadius: '12px', padding: '1.5rem' }}>
-              <div style={{
-                position: 'absolute', left: '-2.85rem', top: '2rem', width: '20px', height: '20px', 
-                borderRadius: '50%', background: 'var(--accent-primary)', border: '4px solid var(--bg-color)'
-              }} />
+          {events.map((ev, index) => {
+            const getEra = (year) => eras.find(e => year >= e.startYear && year <= e.endYear);
+            const currentEra = (baseCalendarId && ev.structuredDate) ? getEra(ev.structuredDate.year) : null;
+            const prevEv = index > 0 ? events[index - 1] : null;
+            const prevEra = (baseCalendarId && prevEv?.structuredDate) ? getEra(prevEv.structuredDate.year) : null;
+            const showEraHeader = currentEra && (!prevEra || prevEra.id !== currentEra.id);
+
+            return (
+            <React.Fragment key={ev.id}>
+              {showEraHeader && (
+                <div style={{ position: 'relative', padding: '1rem', background: 'linear-gradient(45deg, var(--accent-primary), var(--accent-secondary))', color: '#18181b', borderRadius: '12px', fontWeight: 'bold', fontSize: '1.25rem', textAlign: 'center', margin: '2rem 0 1rem -2rem', boxShadow: '0 4px 15px rgba(245, 158, 11, 0.2)' }}>
+                  <div style={{
+                    position: 'absolute', left: '-1rem', top: '50%', transform: 'translateY(-50%)', width: '20px', height: '20px', 
+                    borderRadius: '50%', background: 'var(--accent-primary)', border: '4px solid var(--bg-color)'
+                  }} />
+                  {currentEra.name} <span style={{ fontWeight: 'normal', fontSize: '1rem', opacity: 0.8 }}>({currentEra.startYear} - {currentEra.endYear})</span>
+                </div>
+              )}
+              <div style={{ position: 'relative', background: 'var(--surface-1)', border: '1px solid var(--surface-border)', borderRadius: '12px', padding: '1.5rem' }}>
+                <div style={{
+                  position: 'absolute', left: '-2.85rem', top: '2rem', width: '20px', height: '20px', 
+                  borderRadius: '50%', background: 'var(--accent-primary)', border: '4px solid var(--bg-color)'
+                }} />
               
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', marginBottom: '1rem' }}>
                 <input 
@@ -257,19 +373,6 @@ export default function TimelineEditor() {
                 
                 {baseCalendarId && ev.structuredDate ? (
                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    <select
-                      value={ev.structuredDate.eraId}
-                      onChange={(e) => {
-                        const newE = [...events];
-                        newE[index].structuredDate.eraId = e.target.value;
-                        setEvents(newE);
-                      }}
-                      style={{ padding: '0.5rem', background: 'var(--bg-color)', border: '1px solid var(--surface-border)', borderRadius: '4px', color: '#f59e0b', fontWeight: 'bold' }}
-                    >
-                      <option value="">Select Era...</option>
-                      {calendarEras.map(era => <option key={era.id} value={era.id}>{era.name}</option>)}
-                    </select>
-
                     <input 
                       type="number"
                       placeholder="Year"
@@ -363,7 +466,9 @@ export default function TimelineEditor() {
                 </button>
               </div>
             </div>
-          ))}
+            </React.Fragment>
+            );
+          })}
         </div>
       </div>
 
@@ -385,20 +490,24 @@ export default function TimelineEditor() {
             </select>
 
             <div style={{ maxHeight: '300px', overflowY: 'auto', background: 'var(--bg-color)', border: '1px solid var(--surface-border)', borderRadius: '8px' }}>
-              {selectedTreeId && userTrees.find(t => t.id === selectedTreeId)?.data?.nodes?.filter(n => n.type === 'person').map(n => (
-                <div 
-                  key={n.id}
-                  onClick={() => confirmLink(n)}
-                  style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--surface-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '1rem' }}
-                >
-                  {n.data.portraitUrl ? (
-                    <img src={n.data.portraitUrl} style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
-                  ) : (
-                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--surface-1)' }} />
-                  )}
-                  <span>{n.data.firstName} {n.data.lastName}</span>
-                </div>
-              ))}
+              {!selectedTreeData ? (
+                <div style={{ padding: '1rem', color: 'var(--text-muted)', textAlign: 'center' }}>Loading characters...</div>
+              ) : (
+                selectedTreeData.nodes?.filter(n => n.type === 'person').map(n => (
+                  <div 
+                    key={n.id}
+                    onClick={() => confirmLink(n)}
+                    style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--surface-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '1rem' }}
+                  >
+                    {n.data.portraitUrl ? (
+                      <img src={n.data.portraitUrl} style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--surface-1)' }} />
+                    )}
+                    <span>{n.data.firstName} {n.data.regnalNumber ? `${toRoman(n.data.regnalNumber)} ` : ''}{n.data.lastName}</span>
+                  </div>
+                ))
+              )}
             </div>
 
             <button 
