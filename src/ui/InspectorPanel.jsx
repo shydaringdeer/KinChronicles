@@ -3,13 +3,34 @@ import { TreeContext } from './TreeContext';
 import { uploadImage } from '../state/db';
 import ImageGalleryModal from './ImageGalleryModal';
 
-export default function InspectorPanel({ currentUser, selectedNode, selectedEdge, onUpdateNode, onUpdateEdge, onDeleteNode, onDeleteEdge, onClose }) {
+export default function InspectorPanel({ currentUser, selectedNode, selectedEdge, onUpdateNode, onUpdateEdge, onDeleteNode, onDeleteEdge, onClose, panelWidth = 350, onWidthChange }) {
   const { dynasties, setDynasties, baseCalendarId, userCalendars } = useContext(TreeContext);
   const [editingDynastyId, setEditingDynastyId] = useState(null); // null, 'new', or dynasty.id
   const [newDynasty, setNewDynasty] = useState({ name: '', branch: '', coaUrl: '' });
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef(null);
   const portraitInputRef = useRef(null);
+  const isResizing = useRef(false);
+
+  const startResizing = (e) => {
+    isResizing.current = true;
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', stopResizing);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isResizing.current) return;
+    const newWidth = document.body.clientWidth - e.clientX;
+    if (newWidth > 300 && newWidth < 800) {
+      if (typeof onWidthChange === 'function') onWidthChange(newWidth);
+    }
+  };
+
+  const stopResizing = () => {
+    isResizing.current = false;
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', stopResizing);
+  };
 
   const handleDynastySelect = (e) => {
     const val = e.target.value;
@@ -371,26 +392,26 @@ export default function InspectorPanel({ currentUser, selectedNode, selectedEdge
       </div>
     );
   };
-
   return (
     <div 
       style={{
-        position: 'absolute',
-        top: 0,
-        right: 0,
-        width: '320px',
+        width: `${panelWidth}px`,
         height: '100%',
-        backgroundColor: 'var(--surface-1)',
+        background: 'var(--surface-1)',
         borderLeft: '1px solid var(--surface-border)',
-        boxShadow: '-4px 0 15px rgba(0,0,0,0.3)',
-        zIndex: 50,
-        padding: '2rem 1.5rem',
+        boxShadow: '-4px 0 15px rgba(0, 0, 0, 0.5)',
         display: 'flex',
         flexDirection: 'column',
+        position: 'absolute',
+        right: 0,
+        top: 0,
+        zIndex: 10,
+        padding: '2rem 1.5rem',
         gap: '1.5rem',
         overflowY: 'auto'
       }}
     >
+      <div className="resizer-handle" onMouseDown={startResizing} />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 600 }}>Edit Character</h2>
         <button 
@@ -420,20 +441,22 @@ export default function InspectorPanel({ currentUser, selectedNode, selectedEdge
             disabled={isUploading}
           />
           <button 
+            className="btn btn-secondary"
             onClick={() => {
               setGalleryTarget('portrait');
               setIsGalleryOpen(true);
             }} 
             disabled={isUploading} 
-            style={{ padding: '0.75rem', borderRadius: '8px', cursor: isUploading ? 'not-allowed' : 'pointer', background: 'var(--surface-border)', border: 'none', color: 'white' }}
+            style={{ padding: '0.75rem', height: '100%' }}
             title="Choose from Gallery"
           >
             🖼️
           </button>
           <button 
+            className="btn btn-secondary"
             onClick={() => portraitInputRef.current?.click()} 
             disabled={isUploading} 
-            style={{ padding: '0.75rem', borderRadius: '8px', cursor: isUploading ? 'not-allowed' : 'pointer', background: 'var(--surface-border)', border: 'none', color: 'white' }}
+            style={{ padding: '0.75rem', height: '100%' }}
             title="Upload New"
           >
             📁
@@ -666,20 +689,9 @@ export default function InspectorPanel({ currentUser, selectedNode, selectedEdge
       
       <div style={{ marginTop: 'auto', paddingTop: '2rem' }}>
         <button
+          className="btn btn-danger"
           onClick={() => onDeleteNode(selectedNode.id)}
-          style={{
-            width: '100%',
-            padding: '0.75rem',
-            backgroundColor: 'rgba(239, 68, 68, 0.1)',
-            color: '#ef4444',
-            border: '1px solid #ef4444',
-            borderRadius: '8px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            transition: 'background-color 0.2s',
-          }}
-          onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.2)'}
-          onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.1)'}
+          style={{ width: '100%', padding: '0.75rem' }}
         >
           Delete Character
         </button>

@@ -4,8 +4,8 @@ export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
 
-  const nodeWidth = 260; 
-  const nodeHeight = 240; 
+  const defaultNodeWidth = 260; 
+  const defaultNodeHeight = 240; 
   
   const HORIZONTAL_GAP = 320; // Distance to place spouses
 
@@ -58,10 +58,13 @@ export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
           (e.target === node.id && inLawNodes.has(e.source))
         ).length;
         
+        const nWidth = node.measured?.width || node.width || defaultNodeWidth;
+        const nHeight = node.measured?.height || node.height || defaultNodeHeight;
+        
         // Inflate width to make room for spouses to the right
-        const effectiveWidth = nodeWidth + (spouseCount * HORIZONTAL_GAP);
+        const effectiveWidth = nWidth + (spouseCount * HORIZONTAL_GAP);
         // We need to store the effective width so we can offset correctly later
-        dagreGraph.setNode(node.id, { width: effectiveWidth, height: nodeHeight, spouseCount });
+        dagreGraph.setNode(node.id, { width: effectiveWidth, height: nHeight, spouseCount });
       }
     }
   });
@@ -88,14 +91,17 @@ export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
           }
         };
       } else {
-        const effectiveWidth = nodeWidth + ((nodeWithPosition.spouseCount || 0) * HORIZONTAL_GAP);
+        const nWidth = node.measured?.width || node.width || defaultNodeWidth;
+        const nHeight = node.measured?.height || node.height || defaultNodeHeight;
+        const effectiveWidth = nWidth + ((nodeWithPosition.spouseCount || 0) * HORIZONTAL_GAP);
+        
         // nodeWithPosition.x is the center of the inflated box.
         // We want to place the actual node at the far left of this box.
         return {
           ...node,
           position: {
             x: nodeWithPosition.x - (effectiveWidth / 2),
-            y: nodeWithPosition.y - (nodeHeight / 2),
+            y: nodeWithPosition.y - (nHeight / 2),
           }
         };
       }
@@ -113,14 +119,14 @@ export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
         const partnerNode = layoutedNodes.find(n => n.id === partnerId);
         
         if (partnerNode) {
-          // Check if partner has right-side connections
-          // We'll place the spouse to the right. If multiple spouses, we'd need to offset more, 
-          // but for simplicity, place to the right.
-          // To avoid overlapping other core nodes, dagre nodesep usually gives 100px gap. 
-          // Spouses might overlap cousins, but this is a standard family tree dilemma.
+          const partnerHeight = partnerNode.measured?.height || partnerNode.height || defaultNodeHeight;
+          const nodeCurrentHeight = node.measured?.height || node.height || defaultNodeHeight;
+          
+          const partnerCenterY = partnerNode.position.y + (partnerHeight / 2);
+          
           node.position = {
             x: partnerNode.position.x + HORIZONTAL_GAP,
-            y: partnerNode.position.y
+            y: partnerCenterY - (nodeCurrentHeight / 2)
           };
         }
       }

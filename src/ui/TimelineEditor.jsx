@@ -183,9 +183,9 @@ export default function TimelineEditor() {
       <div style={{ width: '350px', background: 'var(--surface-1)', borderRight: '1px solid var(--surface-border)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--surface-border)' }}>
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-            <button onClick={() => navigate('/')} style={{ background: 'var(--surface-border)', color: 'white', border: 'none', cursor: 'pointer', padding: '0.5rem 1rem', borderRadius: '4px', fontWeight: 'bold', flex: 1 }}>🏠 Home</button>
-            <button onClick={() => navigate('/tree')} style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--surface-border)', cursor: 'pointer', padding: '0.5rem', borderRadius: '4px', flex: 1 }}>Family Tree</button>
-            <button onClick={() => navigate('/calendar')} style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--surface-border)', cursor: 'pointer', padding: '0.5rem', borderRadius: '4px', flex: 1 }}>Calendars</button>
+            <button onClick={() => navigate('/')} className="btn btn-secondary" style={{ flex: 1 }}>🏠 Home</button>
+            <button onClick={() => navigate('/tree')} className="btn btn-secondary" style={{ flex: 1 }}>Family Tree</button>
+            <button onClick={() => navigate('/calendar')} className="btn btn-secondary" style={{ flex: 1 }}>Calendars</button>
           </div>
           <input 
             type="text" 
@@ -213,7 +213,7 @@ export default function TimelineEditor() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h3 style={{ margin: 0, color: 'var(--text-secondary)' }}>Timeline Eras</h3>
-              <button onClick={addEra} style={{ background: 'var(--surface-border)', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}>+ Add</button>
+              <button onClick={addEra} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.8rem' }}>+ Add</button>
             </div>
             {eras.length === 0 && <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No eras defined.</div>}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -277,7 +277,8 @@ export default function TimelineEditor() {
                     setEras([]);
                     setBaseCalendarId('');
                   }} 
-                  style={{ background: 'var(--surface-border)', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
+                  className="btn btn-secondary"
+                  style={{ padding: '4px 8px', fontSize: '0.8rem' }}
                 >
                   + New
                 </button>
@@ -301,7 +302,8 @@ export default function TimelineEditor() {
           <button 
             onClick={handleSave} 
             disabled={isSaving}
-            style={{ width: '100%', padding: '1rem', background: 'var(--accent-primary)', color: '#18181b', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
+            className="btn btn-primary"
+            style={{ width: '100%', padding: '1rem' }}
           >
             {isSaving ? 'Saving...' : '☁️ Save Timeline'}
           </button>
@@ -316,14 +318,14 @@ export default function TimelineEditor() {
             {baseCalendarId && (
               <button 
                 onClick={sortEvents} 
-                style={{ background: 'var(--surface-1)', color: 'var(--text-primary)', border: '1px solid var(--surface-border)', padding: '0.75rem 1.5rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
+                className="btn btn-secondary"
               >
                 ↕ Sort
               </button>
             )}
             <button 
               onClick={addEvent} 
-              style={{ background: 'var(--text-primary)', color: 'var(--bg-color)', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
+              className="btn btn-primary"
             >
               + Add Event
             </button>

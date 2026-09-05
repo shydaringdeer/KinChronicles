@@ -42,6 +42,7 @@ export default function TreeEditor() {
   const [isSaving, setIsSaving] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [rfInstance, setRfInstance] = useState(null);
+  const [inspectorWidth, setInspectorWidth] = useState(350);
   
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
@@ -498,128 +499,29 @@ export default function TreeEditor() {
     nodes.forEach(n => {
       if (n.type !== 'person') return;
       const house = n.data.lastName || 'Unknown House';
-      const branch = n.data.cadetBranch;
-      const key = branch ? `${house} (Branch: ${branch})` : house;
-      stats[key] = (stats[key] || 0) + 1;
-    });
-    return Object.entries(stats).sort((a, b) => b[1] - a[1]);
-  }, [nodes]);
-
-  const btnStyle = {
-    padding: '0.75rem 1.25rem',
-    background: 'var(--surface-1)',
-    color: 'var(--text-primary)',
-    border: '1px solid var(--surface-border)',
-    fontWeight: 600,
-    borderRadius: '12px',
-    cursor: 'pointer'
-  };
-
-  const primaryBtnStyle = {
-    ...btnStyle,
-    background: 'var(--text-primary)',
-    color: 'var(--bg-color)',
-    boxShadow: 'var(--node-shadow)'
-  };
+    const branch = n.data.cadetBranch;
+    const key = branch ? `${house} (Branch: ${branch})` : house;
+    stats[key] = (stats[key] || 0) + 1;
+  });
+  return Object.entries(stats).sort((a, b) => b[1] - a[1]);
+}, [nodes]);
 
   return (
     <TreeContext.Provider value={{ dynasties, setDynasties, baseCalendarId, setBaseCalendarId, userCalendars }}>
-      <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
-      <ReactFlow
-        nodes={displayNodes}
-        edges={displayEdges}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onNodeClick={onNodeClick}
-        onPaneClick={onPaneClick}
-        onEdgeClick={onEdgeClick}
-        onEdgeDoubleClick={onEdgeDoubleClick}
-        onInit={setRfInstance}
-        fitView
-      >
-        <Background color="#3f3f46" gap={40} size={1.5} variant="dots" />
-        <Controls style={{ background: '#18181b', border: '1px solid #52525b', fill: '#f4f4f5', color: '#f4f4f5' }} />
-        <MiniMap 
-          position="bottom-left"
-          style={{ background: '#18181b', border: '1px solid #52525b' }}
-          nodeColor="var(--node-bg)"
-          maskColor="rgba(0,0,0,0.4)"
-        />
-      </ReactFlow>
-
-      <InspectorPanel 
-        currentUser={currentUser}
-        selectedNode={selectedNode} 
-        selectedEdge={selectedEdge}
-        onUpdateNode={onUpdateNode} 
-        onUpdateEdge={onUpdateEdge}
-        onDeleteNode={onDeleteNode}
-        onDeleteEdge={onDeleteEdge}
-        onClose={() => {
-          setSelectedNodeId(null);
-          setSelectedEdgeId(null);
-        }} 
-      />
-
-      {isExportModalOpen && (
-        <ExportModal 
-          nodes={nodes} 
-          edges={edges} 
-          dynasties={dynasties}
-          onClose={() => setIsExportModalOpen(false)} 
-        />
-      )}
-
-      {isTreeListOpen && currentUser && (
-        <TreeListModal
-          currentUser={currentUser}
-          onClose={() => setIsTreeListOpen(false)}
-          onSelect={handleSelectTree}
-        />
-      )}
-
-      <div 
-        style={{
-          position: 'absolute',
-          bottom: '24px',
-          right: (selectedNode || selectedEdge) ? '344px' : '24px', 
-          display: 'flex',
-          gap: '1rem',
-          zIndex: 100,
-          transition: 'right 0.2s ease-in-out'
-        }}
-      >
-        <button onClick={() => setIsExportModalOpen(true)} style={btnStyle}>Export</button>
-        <button onClick={onImportJson} style={btnStyle}>Import JSON</button>
-        <input 
-          type="file" 
-          accept=".json" 
-          ref={fileInputRef} 
-          style={{ display: 'none' }} 
-          onChange={handleFallbackImport} 
-        />
-        <button onClick={addNode} style={primaryBtnStyle}>Add Node</button>
-      </div>
-
-      {/* Top UI Overlay */}
-      <div style={{
-        position: 'absolute',
-        top: '24px',
-        left: '24px',
-        right: (selectedNode || selectedEdge) ? '344px' : '24px',
-        zIndex: 40,
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        flexWrap: 'wrap',
-        gap: '1rem',
-        pointerEvents: 'none',
-        transition: 'right 0.2s ease-in-out'
-      }}>
+      <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column' }}>
         
+        {/* Top Task Bar */}
+        <div style={{
+          background: 'var(--surface-1)',
+          borderBottom: '1px solid var(--surface-border)',
+          padding: '1rem 1.5rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          zIndex: 110
+        }}>
         {/* Left/Center Section: Title & Search */}
         <div style={{
           pointerEvents: 'auto',
@@ -703,7 +605,87 @@ export default function TreeEditor() {
             </button>
           </div>
           
-          <div style={{ position: 'relative', width: 'max-content', maxWidth: '100%' }}>
+
+        </div>
+
+        {/* Right Section: Auth & Actions */}
+        <div style={{
+          pointerEvents: 'auto',
+          display: 'flex',
+          gap: '0.5rem',
+          flexWrap: 'wrap',
+          justifyContent: 'flex-end',
+          maxWidth: '100%',
+          flex: '1 1 auto',
+          alignItems: 'center'
+        }}>
+          {currentUser ? (
+            <>
+              {subscriptionTier === 'free' && (
+                <button 
+                  onClick={() => setIsPricingModalOpen(true)} 
+                  className="btn"
+                  style={{ background: 'linear-gradient(45deg, #f59e0b, #d97706)', color: '#fff', border: 'none', fontWeight: 'bold' }}
+                >
+                  ⭐ Upgrade to Pro
+                </button>
+              )}
+              <button onClick={() => navigate('/')} className="btn btn-secondary">🏠 Home</button>
+              <button onClick={() => navigate('/timeline')} className="btn btn-secondary" style={{ color: '#f59e0b' }}>👑 Timelines</button>
+              <button onClick={() => navigate('/calendar')} className="btn btn-secondary" style={{ color: '#f59e0b' }}>👑 Calendars</button>
+              <button onClick={handleNewTree} className="btn btn-secondary">New Tree</button>
+              <button onClick={() => setIsTreeListOpen(true)} className="btn btn-secondary">My Trees</button>
+              <button 
+                onClick={async () => { await logout(); navigate('/login'); }} 
+                className="btn btn-secondary"
+                style={{ color: '#ef4444' }}
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <button 
+              onClick={() => navigate('/login')} 
+              className="btn btn-secondary"
+            >
+              Login / Signup
+            </button>
+          )}
+
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <button onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} className="btn btn-secondary">
+              {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+            </button>
+            <button onClick={handleAutoLayout} className="btn btn-secondary">
+              🪄 Auto-Layout
+            </button>
+            <button onClick={onImportJson} className="btn btn-secondary">
+              📥 Import
+            </button>
+            <input 
+              type="file" 
+              accept=".json" 
+              ref={fileInputRef} 
+              style={{ display: 'none' }} 
+              onChange={handleFallbackImport} 
+            />
+            <button onClick={() => setIsExportModalOpen(true)} className="btn btn-secondary">
+              🖼️ Export
+            </button>
+            <button onClick={handleShare} className="btn btn-secondary">
+              🔗 Share
+            </button>
+            <button onClick={handleSave} disabled={isSaving} className="btn btn-primary">
+              {isSaving ? 'Saving...' : '☁️ Save'}
+            </button>
+          </div>
+        </div>
+
+        </div>
+
+        {/* Main Content Area */}
+        <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: '24px', left: '24px', zIndex: 50, width: 'max-content', maxWidth: '100%' }}>
             <div style={{
               display: 'flex',
               gap: '0.5rem',
@@ -787,68 +769,79 @@ export default function TreeEditor() {
               </div>
             )}
           </div>
-        </div>
+      <ReactFlow
+        nodes={displayNodes}
+        edges={displayEdges}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+        onNodeClick={onNodeClick}
+        onPaneClick={onPaneClick}
+        onEdgeClick={onEdgeClick}
+        onEdgeDoubleClick={onEdgeDoubleClick}
+        onInit={setRfInstance}
+        fitView
+      >
+        <Background color="#3f3f46" gap={40} size={1.5} variant="dots" />
+        <Controls style={{ background: '#18181b', border: '1px solid #52525b', fill: '#f4f4f5', color: '#f4f4f5' }} />
+        <MiniMap 
+          position="bottom-left"
+          style={{ background: '#18181b', border: '1px solid #52525b' }}
+          nodeColor="var(--node-bg)"
+          maskColor="rgba(0,0,0,0.4)"
+        />
+      </ReactFlow>
 
-        {/* Right Section: Auth & Actions */}
-        <div style={{
-          pointerEvents: 'auto',
+      <InspectorPanel 
+        currentUser={currentUser}
+        selectedNode={selectedNode} 
+        selectedEdge={selectedEdge}
+        onUpdateNode={onUpdateNode} 
+        onUpdateEdge={onUpdateEdge}
+        onDeleteNode={onDeleteNode}
+        onDeleteEdge={onDeleteEdge}
+        panelWidth={inspectorWidth}
+        onWidthChange={setInspectorWidth}
+        onClose={() => {
+          setSelectedNodeId(null);
+          setSelectedEdgeId(null);
+        }} 
+      />
+
+      {isExportModalOpen && (
+        <ExportModal 
+          nodes={nodes} 
+          edges={edges} 
+          dynasties={dynasties}
+          onClose={() => setIsExportModalOpen(false)} 
+        />
+      )}
+
+      {isTreeListOpen && currentUser && (
+        <TreeListModal
+          currentUser={currentUser}
+          onClose={() => setIsTreeListOpen(false)}
+          onSelect={handleSelectTree}
+        />
+      )}
+
+      <div 
+        style={{
+          position: 'absolute',
+          bottom: '24px',
+          right: (selectedNode || selectedEdge) ? `${inspectorWidth + 24}px` : '24px', 
           display: 'flex',
-          gap: '0.5rem',
-          flexWrap: 'wrap',
-          justifyContent: 'flex-end',
-          maxWidth: '100%',
-          flex: '1 1 auto',
-          alignItems: 'center'
-        }}>
-          {currentUser ? (
-            <>
-              {subscriptionTier === 'free' && (
-                <button 
-                  onClick={() => setIsPricingModalOpen(true)} 
-                  style={{...btnStyle, background: 'linear-gradient(45deg, #f59e0b, #d97706)', color: '#fff', border: 'none', fontWeight: 'bold'}}
-                >
-                  ⭐ Upgrade to Pro
-                </button>
-              )}
-              <button onClick={() => navigate('/')} style={{...btnStyle, fontWeight: 'bold'}}>🏠 Home</button>
-              <button onClick={() => navigate('/timeline')} style={{...btnStyle, color: '#f59e0b'}}>👑 Timelines</button>
-              <button onClick={() => navigate('/calendar')} style={{...btnStyle, color: '#f59e0b'}}>👑 Calendars</button>
-              <button onClick={handleNewTree} style={btnStyle}>New Tree</button>
-              <button onClick={() => setIsTreeListOpen(true)} style={btnStyle}>My Trees</button>
-              <button 
-                onClick={async () => { await logout(); navigate('/login'); }} 
-                style={{...btnStyle, color: '#ef4444'}}
-              >
-                Logout
-              </button>
-            </>
-          ) : (
-            <button 
-              onClick={() => navigate('/login')} 
-              style={btnStyle}
-            >
-              Login / Signup
-            </button>
-          )}
+          gap: '1rem',
+          zIndex: 100,
+          transition: 'right 0.2s ease-in-out'
+        }}
+      >
+        <button onClick={addNode} className="btn btn-primary">Add Node</button>
+      </div>
 
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            <button onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} style={{ padding: '0.5rem 1rem', background: 'var(--surface-1)', border: '1px solid var(--surface-border)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer' }}>
-              {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
-            </button>
-            <button onClick={handleAutoLayout} style={{ padding: '0.5rem 1rem', background: 'var(--surface-1)', border: '1px solid var(--surface-border)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer' }}>
-              🪄 Auto-Layout
-            </button>
-            <button onClick={() => setIsExportModalOpen(true)} style={{ padding: '0.5rem 1rem', background: 'var(--surface-1)', border: '1px solid var(--surface-border)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer' }}>
-              🖼️ Export
-            </button>
-            <button onClick={handleShare} style={{ padding: '0.5rem 1rem', background: 'var(--surface-1)', border: '1px solid var(--surface-border)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer' }}>
-              🔗 Share
-            </button>
-            <button onClick={handleSave} disabled={isSaving} style={{ padding: '0.5rem 1rem', background: 'var(--accent-primary)', border: 'none', borderRadius: '8px', color: '#18181b', fontWeight: 600, cursor: isSaving ? 'not-allowed' : 'pointer' }}>
-              {isSaving ? 'Saving...' : '☁️ Save'}
-            </button>
-          </div>
-        </div>
+
       </div>
       <PricingModal 
         isOpen={isPricingModalOpen} 

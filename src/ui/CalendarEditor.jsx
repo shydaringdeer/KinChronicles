@@ -83,9 +83,9 @@ export default function CalendarEditor() {
       <div style={{ width: '350px', background: 'var(--surface-1)', borderRight: '1px solid var(--surface-border)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--surface-border)' }}>
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-            <button onClick={() => navigate('/')} style={{ background: 'var(--surface-border)', color: 'white', border: 'none', cursor: 'pointer', padding: '0.5rem 1rem', borderRadius: '4px', fontWeight: 'bold', flex: 1 }}>🏠 Home</button>
-            <button onClick={() => navigate('/tree')} style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--surface-border)', cursor: 'pointer', padding: '0.5rem', borderRadius: '4px', flex: 1 }}>Family Tree</button>
-            <button onClick={() => navigate('/timeline')} style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--surface-border)', cursor: 'pointer', padding: '0.5rem', borderRadius: '4px', flex: 1 }}>Timelines</button>
+            <button onClick={() => navigate('/')} className="btn btn-secondary" style={{ flex: 1 }}>🏠 Home</button>
+            <button onClick={() => navigate('/tree')} className="btn btn-secondary" style={{ flex: 1 }}>Family Tree</button>
+            <button onClick={() => navigate('/timeline')} className="btn btn-secondary" style={{ flex: 1 }}>Timelines</button>
           </div>
           <input 
             type="text" 
@@ -101,7 +101,7 @@ export default function CalendarEditor() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h3 style={{ margin: 0, color: 'var(--text-secondary)' }}>Months</h3>
-              <button onClick={addMonth} style={{ background: 'var(--surface-border)', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}>+ Add</button>
+              <button onClick={addMonth} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.8rem' }}>+ Add</button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {months.map((m, index) => (
@@ -162,7 +162,8 @@ export default function CalendarEditor() {
                     setMonths([{ id: 1, name: 'Month 1', days: 30 }]);
                     setDaysOfWeek(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
                   }} 
-                  style={{ background: 'var(--surface-border)', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
+                  className="btn btn-secondary"
+                  style={{ padding: '4px 8px', fontSize: '0.8rem' }}
                 >
                   + New
                 </button>
@@ -187,7 +188,8 @@ export default function CalendarEditor() {
           <button 
             onClick={handleSave} 
             disabled={isSaving}
-            style={{ width: '100%', padding: '1rem', background: 'var(--accent-primary)', color: '#18181b', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
+            className="btn btn-primary"
+            style={{ width: '100%', padding: '1rem' }}
           >
             {isSaving ? 'Saving...' : '☁️ Save Calendar'}
           </button>

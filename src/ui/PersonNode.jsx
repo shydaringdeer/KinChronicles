@@ -4,8 +4,8 @@ import { TreeContext } from './TreeContext';
 
 const handleStyle = {
   background: '#18181b',
-  width: 12,
-  height: 12,
+  width: 16,
+  height: 16,
   border: '2px solid #a1a1aa'
 };
 
@@ -172,8 +172,8 @@ const PersonNode = ({ id, data, selected }) => {
 
       <Handle type="target" position={Position.Top} id="top" style={handleStyle} />
       <Handle type="source" position={Position.Bottom} id="bottom" style={handleStyle} />
-      <Handle type="target" position={Position.Left} id="left" style={{ ...handleStyle, top: '50px' }} />
-      <Handle type="source" position={Position.Right} id="right" style={{ ...handleStyle, top: '50px' }} />
+      <Handle type="target" position={Position.Left} id="left" style={handleStyle} />
+      <Handle type="source" position={Position.Right} id="right" style={handleStyle} />
 
       <div 
         style={{
