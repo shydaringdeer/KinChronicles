@@ -533,6 +533,7 @@ export default function TreeEditor() {
       </ReactFlow>
 
       <InspectorPanel 
+        currentUser={currentUser}
         selectedNode={selectedNode} 
         selectedEdge={selectedEdge}
         onUpdateNode={onUpdateNode} 
@@ -671,7 +672,18 @@ export default function TreeEditor() {
               </span>
             )}
 
-            <button onClick={() => setIsEditNameModalOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', marginLeft: '5px' }}>✏️</button>
+            <button 
+              onClick={() => {
+                const newName = prompt("Enter a new name for this family tree:", currentTreeName);
+                if (newName && newName.trim()) {
+                  setCurrentTreeName(newName.trim());
+                }
+              }} 
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', marginLeft: '5px' }}
+              title="Rename Family Tree"
+            >
+              ✏️
+            </button>
           </div>
           
           <div style={{ position: 'relative', width: 'max-content', maxWidth: '100%' }}>

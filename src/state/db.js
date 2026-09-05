@@ -124,11 +124,13 @@ export const shareTree = async (treeId, userId) => {
 /**
  * Upload an image to Supabase Storage
  */
-export const uploadImage = async (file) => {
+export const uploadImage = async (file, userId) => {
   if (!file) return null;
   const fileExt = file.name.split('.').pop();
   const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-  const filePath = `${fileName}`;
+  
+  // Use a folder structure based on userId if provided, otherwise fallback to root
+  const filePath = userId ? `${userId}/${fileName}` : `${fileName}`;
 
   try {
     const { error: uploadError } = await supabase.storage
@@ -141,6 +143,59 @@ export const uploadImage = async (file) => {
     return data.publicUrl;
   } catch (error) {
     console.error("Error uploading image:", error);
+    throw error;
+  }
+};
+
+/**
+ * List all images uploaded by the user
+ */
+export const listImages = async (userId) => {
+  if (!userId) return [];
+  try {
+    const { data, error } = await supabase.storage
+      .from('images')
+      .list(userId, {
+        limit: 100,
+        offset: 0,
+        sortBy: { column: 'created_at', order: 'desc' },
+      });
+
+    if (error) throw error;
+    
+    // Map over the files to get their full public URLs
+    return data
+      .filter(file => file.name !== '.emptyFolderPlaceholder') // Sometimes created by clients
+      .map(file => {
+        const filePath = `${userId}/${file.name}`;
+        const { data: urlData } = supabase.storage.from('images').getPublicUrl(filePath);
+        return {
+          name: file.name,
+          path: filePath,
+          url: urlData.publicUrl,
+          created_at: file.created_at,
+          size: file.metadata?.size || 0
+        };
+      });
+  } catch (error) {
+    console.error("Error listing images:", error);
+    return [];
+  }
+};
+
+/**
+ * Delete an image from Supabase Storage
+ */
+export const deleteImage = async (filePath) => {
+  try {
+    const { error } = await supabase.storage
+      .from('images')
+      .remove([filePath]);
+      
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Error deleting image:", error);
     throw error;
   }
 };

@@ -1,8 +1,9 @@
 import React, { useContext, useState, useRef } from 'react';
 import { TreeContext } from './TreeContext';
 import { uploadImage } from '../state/db';
+import ImageGalleryModal from './ImageGalleryModal';
 
-export default function InspectorPanel({ selectedNode, selectedEdge, onUpdateNode, onUpdateEdge, onDeleteNode, onDeleteEdge, onClose }) {
+export default function InspectorPanel({ currentUser, selectedNode, selectedEdge, onUpdateNode, onUpdateEdge, onDeleteNode, onDeleteEdge, onClose }) {
   const { dynasties, setDynasties } = useContext(TreeContext);
   const [editingDynastyId, setEditingDynastyId] = useState(null); // null, 'new', or dynasty.id
   const [newDynasty, setNewDynasty] = useState({ name: '', branch: '', coaUrl: '' });
@@ -107,13 +108,16 @@ export default function InspectorPanel({ selectedNode, selectedEdge, onUpdateNod
     });
   };
 
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [galleryTarget, setGalleryTarget] = useState(null); // 'portrait' or 'coa'
+
   const handleCoaUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
       setIsUploading(true);
       try {
         const compressed = await compressImage(file);
-        const publicUrl = await uploadImage(compressed);
+        const publicUrl = await uploadImage(compressed, currentUser?.id);
         setNewDynasty(prev => ({ ...prev, coaUrl: publicUrl }));
       } catch (err) {
         alert("Failed to upload image. Error: " + (err.message || JSON.stringify(err)));
@@ -129,7 +133,7 @@ export default function InspectorPanel({ selectedNode, selectedEdge, onUpdateNod
       setIsUploading(true);
       try {
         const compressed = await compressImage(file);
-        const publicUrl = await uploadImage(compressed);
+        const publicUrl = await uploadImage(compressed, currentUser?.id);
         onUpdateNode(selectedNode.id, { portraitUrl: publicUrl });
       } catch (err) {
         alert("Failed to upload portrait. Error: " + (err.message || JSON.stringify(err)));
@@ -355,13 +359,25 @@ export default function InspectorPanel({ selectedNode, selectedEdge, onUpdateNod
             value={data.portraitUrl || ''} 
             onChange={handleChange}
             placeholder="https://..."
-            style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--surface-border)', background: 'var(--bg-color)', color: 'white' }}
+            style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--surface-border)', background: 'var(--bg-color)', color: 'white', minWidth: 0 }}
             disabled={isUploading}
           />
+          <button 
+            onClick={() => {
+              setGalleryTarget('portrait');
+              setIsGalleryOpen(true);
+            }} 
+            disabled={isUploading} 
+            style={{ padding: '0.75rem', borderRadius: '8px', cursor: isUploading ? 'not-allowed' : 'pointer', background: 'var(--surface-border)', border: 'none', color: 'white' }}
+            title="Choose from Gallery"
+          >
+            🖼️
+          </button>
           <button 
             onClick={() => portraitInputRef.current?.click()} 
             disabled={isUploading} 
             style={{ padding: '0.75rem', borderRadius: '8px', cursor: isUploading ? 'not-allowed' : 'pointer', background: 'var(--surface-border)', border: 'none', color: 'white' }}
+            title="Upload New"
           >
             📁
           </button>
@@ -439,7 +455,25 @@ export default function InspectorPanel({ selectedNode, selectedEdge, onUpdateNod
             />
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <input type="text" placeholder="COA URL (or upload)" value={newDynasty.coaUrl} onChange={e => setNewDynasty({...newDynasty, coaUrl: e.target.value})} style={{ flex: 1, padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--surface-border)', background: 'var(--bg-color)', color: 'white', minWidth: 0 }} disabled={isUploading} />
-              <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} style={{ padding: '0.5rem', borderRadius: '4px', cursor: isUploading ? 'not-allowed' : 'pointer', background: 'var(--surface-border)', border: 'none', color: 'white' }}>📁</button>
+              <button 
+                onClick={() => {
+                  setGalleryTarget('coa');
+                  setIsGalleryOpen(true);
+                }} 
+                disabled={isUploading} 
+                style={{ padding: '0.5rem', borderRadius: '4px', cursor: isUploading ? 'not-allowed' : 'pointer', background: 'var(--surface-border)', border: 'none', color: 'white' }}
+                title="Choose from Gallery"
+              >
+                🖼️
+              </button>
+              <button 
+                onClick={() => fileInputRef.current?.click()} 
+                disabled={isUploading} 
+                style={{ padding: '0.5rem', borderRadius: '4px', cursor: isUploading ? 'not-allowed' : 'pointer', background: 'var(--surface-border)', border: 'none', color: 'white' }}
+                title="Upload New"
+              >
+                📁
+              </button>
               <input type="file" ref={fileInputRef} onChange={handleCoaUpload} accept="image/*" style={{ display: 'none' }} />
             </div>
             {isUploading && <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Uploading image...</span>}
@@ -648,6 +682,19 @@ export default function InspectorPanel({ selectedNode, selectedEdge, onUpdateNod
           Delete Character
         </button>
       </div>
+
+      <ImageGalleryModal 
+        isOpen={isGalleryOpen}
+        onClose={() => setIsGalleryOpen(false)}
+        currentUser={currentUser}
+        onSelectImage={(url) => {
+          if (galleryTarget === 'portrait') {
+            onUpdateNode(selectedNode.id, { portraitUrl: url });
+          } else if (galleryTarget === 'coa') {
+            setNewDynasty(prev => ({ ...prev, coaUrl: url }));
+          }
+        }}
+      />
     </div>
   );
 }
