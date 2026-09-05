@@ -71,7 +71,7 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  transition: background-color var(--transition-normal), color var(--transition-normal), border-color var(--transition-normal);
+  transition: background-color 2s, color 2s, border-color 2s;
 }
 
 body {
