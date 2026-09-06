@@ -1,6 +1,6 @@
-import React, { useContext, useState, useRef } from 'react';
+import React, { useContext, useState, useRef, useEffect } from 'react';
 import { TreeContext } from './TreeContext';
-import { uploadImage } from '../state/db';
+import { uploadImage, loadNameLists } from '../state/db';
 import ImageGalleryModal from './ImageGalleryModal';
 
 export default function InspectorPanel({ currentUser, selectedNode, selectedEdge, onUpdateNode, onUpdateEdge, onDeleteNode, onDeleteEdge, onClose, panelWidth = 350, onWidthChange }) {
@@ -8,9 +8,16 @@ export default function InspectorPanel({ currentUser, selectedNode, selectedEdge
   const [editingDynastyId, setEditingDynastyId] = useState(null); // null, 'new', or dynasty.id
   const [newDynasty, setNewDynasty] = useState({ name: '', branch: '', coaUrl: '' });
   const [isUploading, setIsUploading] = useState(false);
+  const [nameLists, setNameLists] = useState([]);
   const fileInputRef = useRef(null);
   const portraitInputRef = useRef(null);
   const isResizing = useRef(false);
+
+  useEffect(() => {
+    if (currentUser) {
+      loadNameLists(currentUser.id).then(setNameLists);
+    }
+  }, [currentUser]);
 
   const startResizing = (e) => {
     isResizing.current = true;
@@ -470,19 +477,49 @@ export default function InspectorPanel({ currentUser, selectedNode, selectedEdge
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
         <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>First Name</label>
-        <input 
-          type="text" 
-          name="firstName"
-          value={data.firstName || ''} 
-          onChange={handleChange}
-          style={{
-            padding: '0.75rem',
-            borderRadius: '8px',
-            border: '1px solid var(--surface-border)',
-            background: 'var(--bg-color)',
-            color: 'var(--text-primary)'
-          }}
-        />
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <input 
+            type="text" 
+            name="firstName"
+            value={data.firstName || ''} 
+            onChange={handleChange}
+            style={{
+              flex: 1,
+              padding: '0.75rem',
+              borderRadius: '8px',
+              border: '1px solid var(--surface-border)',
+              background: 'var(--bg-color)',
+              color: 'var(--text-primary)'
+            }}
+          />
+          <button
+            className="btn btn-secondary"
+            title="Randomize First Name"
+            onClick={() => {
+              const charLists = nameLists.filter(l => l.type === 'character');
+              if (charLists.length === 0) return alert("You don't have any Character Name Lists. Create some in the Name Lists feature!");
+              
+              const currentGender = data.gender || 'male';
+              // Pool all valid names
+              const validNames = [];
+              charLists.forEach(list => {
+                list.data.names.forEach(n => {
+                  if (n.gender === 'any' || n.gender === currentGender || !n.gender) {
+                    validNames.push(n.name);
+                  }
+                });
+              });
+
+              if (validNames.length === 0) return alert(`No ${currentGender} names found in your lists!`);
+              
+              const randomName = validNames[Math.floor(Math.random() * validNames.length)];
+              onUpdateNode(selectedNode.id, { firstName: randomName });
+            }}
+            style={{ padding: '0 0.75rem' }}
+          >
+            🎲
+          </button>
+        </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -508,6 +545,33 @@ export default function InspectorPanel({ currentUser, selectedNode, selectedEdge
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>House / Dynasty</label>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              title="Randomize Dynasty Name"
+              onClick={() => {
+                const dynLists = nameLists.filter(l => l.type === 'dynasty');
+                if (dynLists.length === 0) return alert("You don't have any Dynasty Name Lists. Create some in the Name Lists feature!");
+                
+                const validNames = [];
+                dynLists.forEach(list => {
+                  list.data.names.forEach(n => validNames.push(n.name));
+                });
+
+                if (validNames.length === 0) return alert("No dynasty names found in your lists!");
+                
+                const randomName = validNames[Math.floor(Math.random() * validNames.length)];
+                
+                const id = `dyn-${Date.now()}`;
+                const d = { id, name: randomName, branch: '', coaUrl: '' };
+                setDynasties([...dynasties, d]);
+                onUpdateNode(selectedNode.id, { dynastyId: id, lastName: d.name, cadetBranch: d.branch });
+              }}
+              style={{
+                background: 'transparent', border: 'none', color: 'var(--text-primary)',
+                cursor: 'pointer', fontSize: '1.2rem'
+              }}
+            >
+              🎲
+            </button>
             {data.dynastyId && !editingDynastyId && (
               <button 
                 onClick={handleEditDynasty}

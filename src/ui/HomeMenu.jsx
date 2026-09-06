@@ -111,6 +111,22 @@ export default function HomeMenu() {
               Create Calendars (Pro)
             </button>
           </div>
+
+          {/* Feature 4: Name Lists */}
+          <div className="feature-card">
+            <div className="feature-icon">📝</div>
+            <h3 className="feature-title">Name Lists</h3>
+            <p className="feature-desc">
+              Create and manage lists of character names and dynasty/house names. Use them to randomize names directly within your family trees!
+            </p>
+            <button 
+              onClick={() => navigate('/names')}
+              className="btn btn-secondary"
+              style={{ alignSelf: 'flex-start' }}
+            >
+              Manage Name Lists
+            </button>
+          </div>
         </div>
       </section>
 

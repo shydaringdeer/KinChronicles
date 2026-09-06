@@ -277,3 +277,54 @@ export const loadCalendars = async (userId) => {
     return [];
   }
 };
+
+/**
+ * NAME LISTS
+ */
+export const saveNameList = async (userId, listId, name, type, data) => {
+  if (!userId) throw new Error("User not authenticated");
+  try {
+    let payload = {
+      user_id: userId,
+      name,
+      type,
+      data,
+      updated_at: new Date().toISOString()
+    };
+    if (listId) {
+      const { data: res, error } = await supabase.from('name_lists').update(payload).eq('id', listId).eq('user_id', userId).select().single();
+      if (error) throw error;
+      return res;
+    } else {
+      const { data: res, error } = await supabase.from('name_lists').insert(payload).select().single();
+      if (error) throw error;
+      return res;
+    }
+  } catch (err) {
+    console.error("Error saving name list:", err);
+    throw err;
+  }
+};
+
+export const loadNameLists = async (userId) => {
+  if (!userId) return [];
+  try {
+    const { data, error } = await supabase.from('name_lists').select('*').eq('user_id', userId).order('updated_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.error("Error loading name lists:", err);
+    return [];
+  }
+};
+
+export const deleteNameList = async (listId, userId) => {
+  try {
+    const { error } = await supabase.from('name_lists').delete().eq('id', listId).eq('user_id', userId);
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Error deleting name list:", error);
+    throw error;
+  }
+};

@@ -8,6 +8,8 @@ import TreeViewer from './ui/TreeViewer';
 import TimelineEditor from './ui/TimelineEditor';
 import CalendarEditor from './ui/CalendarEditor';
 
+import NameListEditor from './ui/NameListEditor';
+
 function App() {
   return (
     <HashRouter>
@@ -18,6 +20,7 @@ function App() {
         <Route path="/view/:treeId" element={<TreeViewer />} />
         <Route path="/timeline" element={<TimelineEditor />} />
         <Route path="/calendar" element={<CalendarEditor />} />
+        <Route path="/names" element={<NameListEditor />} />
       </Routes>
     </HashRouter>
   );
