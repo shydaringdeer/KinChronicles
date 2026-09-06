@@ -328,3 +328,55 @@ export const deleteNameList = async (listId, userId) => {
     throw error;
   }
 };
+
+/**
+ * MANUSCRIPTS
+ */
+export const saveManuscript = async (userId, manuscriptId, title, author, copyright, nodes) => {
+  if (!userId) throw new Error("User not authenticated");
+  try {
+    let payload = {
+      user_id: userId,
+      title,
+      author,
+      copyright,
+      nodes,
+      updated_at: new Date().toISOString()
+    };
+    if (manuscriptId) {
+      const { data: res, error } = await supabase.from('manuscripts').update(payload).eq('id', manuscriptId).eq('user_id', userId).select().single();
+      if (error) throw error;
+      return res;
+    } else {
+      const { data: res, error } = await supabase.from('manuscripts').insert({ ...payload, id: manuscriptId }).select().single();
+      if (error) throw error;
+      return res;
+    }
+  } catch (err) {
+    console.error("Error saving manuscript:", err);
+    throw err;
+  }
+};
+
+export const loadManuscripts = async (userId) => {
+  if (!userId) return [];
+  try {
+    const { data, error } = await supabase.from('manuscripts').select('*').eq('user_id', userId).order('updated_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.error("Error loading manuscripts:", err);
+    return [];
+  }
+};
+
+export const deleteManuscriptApi = async (manuscriptId, userId) => {
+  try {
+    const { error } = await supabase.from('manuscripts').delete().eq('id', manuscriptId).eq('user_id', userId);
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Error deleting manuscript:", error);
+    throw error;
+  }
+};

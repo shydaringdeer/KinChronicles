@@ -1,8 +1,46 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase, getUserProfile } from '../state/supabase';
+import PricingModal from './PricingModal';
 
 export default function HomeMenu() {
   const navigate = useNavigate();
+
+  const [currentUser, setCurrentUser] = useState(null);
+  const [subscriptionTier, setSubscriptionTier] = useState('free');
+  const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setCurrentUser(session?.user ?? null);
+      if (session?.user) {
+        getUserProfile(session.user.id).then(profile => {
+          if (profile) setSubscriptionTier(profile.subscription_tier || 'free');
+        });
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setCurrentUser(session?.user ?? null);
+      if (session?.user) {
+        getUserProfile(session.user.id).then(profile => {
+          if (profile) setSubscriptionTier(profile.subscription_tier || 'free');
+        });
+      } else {
+        setSubscriptionTier('free');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleProClick = (path) => {
+    if (subscriptionTier !== 'pro') {
+      setIsPricingModalOpen(true);
+    } else {
+      navigate(path);
+    }
+  };
 
   return (
     <div style={{
@@ -88,7 +126,7 @@ export default function HomeMenu() {
               Track historical events, eras, and reign lengths. Correlate your family tree characters with specific moments in your world's history.
             </p>
             <button 
-              onClick={() => navigate('/timeline')}
+              onClick={() => handleProClick('/timeline')}
               className="btn btn-secondary"
               style={{ alignSelf: 'flex-start', background: 'linear-gradient(45deg, #f59e0b, #d97706)', color: 'white', border: 'none' }}
             >
@@ -104,7 +142,7 @@ export default function HomeMenu() {
               Design bespoke calendar systems with custom months, days, and eras. Assign exact dates to character births, deaths, and reigns.
             </p>
             <button 
-              onClick={() => navigate('/calendar')}
+              onClick={() => handleProClick('/calendar')}
               className="btn btn-secondary"
               style={{ alignSelf: 'flex-start', background: 'linear-gradient(45deg, #8b5cf6, #6d28d9)', color: 'white', border: 'none' }}
             >
@@ -127,6 +165,22 @@ export default function HomeMenu() {
               Manage Name Lists
             </button>
           </div>
+          
+          {/* Feature 5: Manuscript Writer */}
+          <div className="feature-card pro">
+            <div className="feature-icon">📖</div>
+            <h3 className="feature-title">Manuscript Writer</h3>
+            <p className="feature-desc">
+              Write books and stories, breaking them down by Parts, Chapters, and Scenes. Export your entire story as a beautifully formatted PDF.
+            </p>
+            <button 
+              onClick={() => handleProClick('/manuscript')}
+              className="btn btn-secondary"
+              style={{ alignSelf: 'flex-start', background: 'linear-gradient(45deg, #10b981, #059669)', color: 'white', border: 'none' }}
+            >
+              Open Manuscript Writer (Pro)
+            </button>
+          </div>
         </div>
       </section>
 
@@ -144,6 +198,13 @@ export default function HomeMenu() {
         <div className="nav-brand" style={{ fontSize: '1.2rem' }}>KinChronicles</div>
         <p>© {new Date().getFullYear()} KinChronicles. All rights reserved.</p>
       </footer>
+
+      <PricingModal 
+        isOpen={isPricingModalOpen} 
+        onClose={() => setIsPricingModalOpen(false)} 
+        currentUser={currentUser}
+        subscriptionTier={subscriptionTier}
+      />
     </div>
   );
 }

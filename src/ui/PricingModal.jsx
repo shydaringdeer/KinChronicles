@@ -153,7 +153,7 @@ export default function PricingModal({ isOpen, onClose, currentUser, subscriptio
               <li><span style={{ color: '#10b981' }}>✓</span> <strong>Unlimited characters</strong> per tree</li>
               <li><span style={{ color: '#10b981' }}>✓</span> <strong>Timeline Builder</strong></li>
               <li><span style={{ color: '#10b981' }}>✓</span> <strong>Custom Calendars</strong></li>
-              <li><span style={{ color: '#10b981' }}>✓</span> <strong>Novel Writer Module</strong> (Coming Soon)</li>
+              <li><span style={{ color: '#10b981' }}>✓</span> <strong>Manuscript Writer</strong></li>
               <li><span style={{ color: '#10b981' }}>✓</span> Priority Support</li>
             </ul>
 

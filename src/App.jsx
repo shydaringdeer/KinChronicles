@@ -9,6 +9,7 @@ import TimelineEditor from './ui/TimelineEditor';
 import CalendarEditor from './ui/CalendarEditor';
 
 import NameListEditor from './ui/NameListEditor';
+import ManuscriptEditor from './ui/ManuscriptEditor';
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
         <Route path="/timeline" element={<TimelineEditor />} />
         <Route path="/calendar" element={<CalendarEditor />} />
         <Route path="/names" element={<NameListEditor />} />
+        <Route path="/manuscript" element={<ManuscriptEditor />} />
       </Routes>
     </HashRouter>
   );
