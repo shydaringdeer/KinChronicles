@@ -54,12 +54,30 @@ export default function HomeMenu() {
       {/* Navigation Bar */}
       <nav className="nav-bar">
         <div className="nav-brand">KinChronicles</div>
-        <button 
-          onClick={() => navigate('/login')}
-          className="btn btn-secondary"
-        >
-          Login / Sign Up
-        </button>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          {currentUser ? (
+            <>
+              <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                {currentUser.email} {subscriptionTier === 'pro' && <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>(Pro)</span>}
+              </span>
+              <button 
+                onClick={async () => {
+                  await supabase.auth.signOut();
+                }}
+                className="btn btn-secondary"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <button 
+              onClick={() => navigate('/login')}
+              className="btn btn-secondary"
+            >
+              Login / Sign Up
+            </button>
+          )}
+        </div>
       </nav>
 
       {/* Hero Section */}
