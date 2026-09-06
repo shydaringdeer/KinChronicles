@@ -35,7 +35,7 @@ export default function LoginMenu() {
     
     setLoading(false);
     if (result.user) {
-      navigate('/tree');
+      navigate('/');
     } else {
       setError(result.error || 'Authentication failed');
     }

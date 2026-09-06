@@ -14,7 +14,7 @@ export default function HomeMenu() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setCurrentUser(session?.user ?? null);
       if (session?.user) {
-        getUserProfile(session.user.id).then(profile => {
+        getUserProfile(session.user.id).then(({ profile }) => {
           if (profile) setSubscriptionTier(profile.subscription_tier || 'free');
         });
       }
@@ -23,7 +23,7 @@ export default function HomeMenu() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setCurrentUser(session?.user ?? null);
       if (session?.user) {
-        getUserProfile(session.user.id).then(profile => {
+        getUserProfile(session.user.id).then(({ profile }) => {
           if (profile) setSubscriptionTier(profile.subscription_tier || 'free');
         });
       } else {

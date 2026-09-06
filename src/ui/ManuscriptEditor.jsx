@@ -50,7 +50,7 @@ export default function ManuscriptEditor() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setCurrentUser(session?.user ?? null);
       if (session?.user) {
-        getUserProfile(session.user.id).then(profile => {
+        getUserProfile(session.user.id).then(({ profile }) => {
           if (profile) setSubscriptionTier(profile.subscription_tier || 'free');
           setAuthLoaded(true);
         });
@@ -62,7 +62,7 @@ export default function ManuscriptEditor() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setCurrentUser(session?.user ?? null);
       if (session?.user) {
-        getUserProfile(session.user.id).then(profile => {
+        getUserProfile(session.user.id).then(({ profile }) => {
           if (profile) setSubscriptionTier(profile.subscription_tier || 'free');
           setAuthLoaded(true);
         });
