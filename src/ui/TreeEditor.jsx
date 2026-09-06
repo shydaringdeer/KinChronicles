@@ -4,9 +4,11 @@ import {
   MiniMap, 
   Controls, 
   Background,
+  Panel,
   useNodesState,
   useEdgesState,
-  addEdge
+  addEdge,
+  SelectionMode
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import PersonNode from './PersonNode';
@@ -56,6 +58,9 @@ export default function TreeEditor() {
   // Subscription State
   const [subscriptionTier, setSubscriptionTier] = useState('free');
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+  
+  // Selection Mode State
+  const [isSelectMode, setIsSelectMode] = useState(false);
 
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
@@ -659,6 +664,13 @@ export default function TreeEditor() {
             <button onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} className="btn btn-secondary">
               {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
             </button>
+            <button 
+              onClick={() => setIsSelectMode(!isSelectMode)} 
+              className={`btn ${isSelectMode ? 'btn-primary' : 'btn-secondary'}`}
+              title="Toggle between panning the canvas and box-selecting multiple nodes"
+            >
+              {isSelectMode ? '🔲 Select Mode' : '🖱️ Pan Mode'}
+            </button>
             <button onClick={onImportJson} className="btn btn-secondary">
               📥 Import
             </button>
@@ -782,10 +794,66 @@ export default function TreeEditor() {
         onEdgeClick={onEdgeClick}
         onEdgeDoubleClick={onEdgeDoubleClick}
         onInit={setRfInstance}
+        panOnDrag={!isSelectMode}
+        selectionOnDrag={isSelectMode}
+        selectionMode={SelectionMode.Partial}
         fitView
       >
         <Background color="#3f3f46" gap={40} size={1.5} variant="dots" />
-        <Controls style={{ background: '#18181b', border: '1px solid #52525b', fill: '#f4f4f5', color: '#f4f4f5' }} />
+        <Panel position="bottom-left" style={{ 
+          marginBottom: '180px', 
+          marginLeft: '15px', 
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+          pointerEvents: 'none'
+        }}>
+          <div style={{ pointerEvents: 'auto', display: 'flex' }}>
+            <a 
+              href="https://discord.gg/zBy8Y2fDna" 
+              target="_blank" 
+              rel="noreferrer"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: '#5865F2',
+                color: 'white',
+                padding: '10px 16px',
+                borderRadius: '8px',
+                textDecoration: 'none',
+                fontWeight: 'bold',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+                transition: 'transform 0.2s ease',
+              }}
+              onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+              onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              <svg width="24" height="24" viewBox="0 0 127.14 96.36" fill="currentColor">
+                <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1,105.25,105.25,0,0,0,32.19-16.14c2.64-27.38-4.51-51.11-18.9-80.21ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.31,60,73.31,53s5-12.74,11.43-12.74S96.1,46,96,53,91,65.69,84.69,65.69Z"/>
+              </svg>
+              Join the Community
+            </a>
+          </div>
+
+          <div style={{
+            background: 'var(--surface-1)', 
+            padding: '12px 16px', 
+            borderRadius: '8px', 
+            border: '1px solid var(--surface-border)', 
+            color: 'var(--text-secondary)', 
+            fontSize: '0.85rem', 
+            maxWidth: '320px', 
+            boxShadow: '0 4px 6px rgba(0,0,0,0.3)' 
+          }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '8px', color: 'var(--text-primary)' }}>💡 Quick Tips</div>
+            <ul style={{ margin: 0, paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <li><strong>Select Multiple:</strong> Click 'Select Mode' at the top, or hold <strong>Shift + Drag</strong>.</li>
+              <li><strong>Move Multiple:</strong> Box-select characters, then drag any selected character.</li>
+              <li><strong>Add Waypoints:</strong> Double-click any line to add a movable joint.</li>
+            </ul>
+          </div>
+        </Panel>
         <MiniMap 
           position="bottom-left"
           style={{ background: '#18181b', border: '1px solid #52525b' }}
