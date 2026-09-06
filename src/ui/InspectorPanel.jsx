@@ -3,7 +3,7 @@ import { TreeContext } from './TreeContext';
 import { uploadImage, loadNameLists } from '../state/db';
 import ImageGalleryModal from './ImageGalleryModal';
 
-export default function InspectorPanel({ currentUser, selectedNode, selectedEdge, onUpdateNode, onUpdateEdge, onDeleteNode, onDeleteEdge, onClose, panelWidth = 350, onWidthChange }) {
+export default function InspectorPanel({ currentUser, nodes, selectedNode, selectedEdge, onUpdateNode, onUpdateEdge, onDeleteNode, onDeleteEdge, onClose, panelWidth = 350, onWidthChange }) {
   const { dynasties, setDynasties, baseCalendarId, userCalendars } = useContext(TreeContext);
   const [editingDynastyId, setEditingDynastyId] = useState(null); // null, 'new', or dynasty.id
   const [newDynasty, setNewDynasty] = useState({ name: '', branch: '', coaUrl: '' });
@@ -82,6 +82,31 @@ export default function InspectorPanel({ currentUser, selectedNode, selectedEdge
     
     setEditingDynastyId(null);
     setNewDynasty({ name: '', branch: '', coaUrl: '' });
+  };
+
+  const handleDeleteDynasty = () => {
+    if (!editingDynastyId || editingDynastyId === 'new') return;
+    
+    const members = (nodes || []).filter(n => n.type === 'person' && n.data.dynastyId === editingDynastyId);
+    
+    if (members.length > 0) {
+       // if the only member is the currently selected node, we can allow deletion.
+       if (members.length === 1 && members[0].id === selectedNode.id) {
+           // Allow deletion
+       } else {
+           alert(`Cannot delete this dynasty because it has ${members.length} character(s) in it.`);
+           return;
+       }
+    }
+
+    if (window.confirm("Are you sure you want to delete this dynasty/house?")) {
+      const updated = dynasties.filter(d => d.id !== editingDynastyId);
+      setDynasties(updated);
+      setEditingDynastyId(null);
+      if (selectedNode && selectedNode.data.dynastyId === editingDynastyId) {
+        onUpdateNode(selectedNode.id, { dynastyId: null });
+      }
+    }
   };
 
   const compressImage = (file) => {
@@ -568,53 +593,6 @@ export default function InspectorPanel({ currentUser, selectedNode, selectedEdge
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>House / Dynasty</label>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <select 
-              value={activeDynListId}
-              onChange={e => setActiveDynListId(e.target.value)}
-              style={{
-                padding: '0.2rem',
-                borderRadius: '4px',
-                border: '1px solid var(--surface-border)',
-                background: 'var(--bg-color)',
-                color: 'var(--text-primary)',
-                maxWidth: '60px',
-                fontSize: '0.75rem'
-              }}
-            >
-              <option value="all">All</option>
-              {nameLists.filter(l => l.type === 'dynasty').map(l => (
-                <option key={l.id} value={l.id}>{l.name}</option>
-              ))}
-            </select>
-            <button
-              title="Randomize Dynasty Name"
-              onClick={() => {
-                const dynLists = nameLists.filter(l => l.type === 'dynasty');
-                if (dynLists.length === 0) return alert("You don't have any Dynasty Name Lists. Create some in the Name Lists feature!");
-                
-                const validNames = [];
-                dynLists.forEach(list => {
-                  if (activeDynListId === 'all' || list.id === activeDynListId) {
-                    list.data.names.forEach(n => validNames.push(n.name));
-                  }
-                });
-
-                if (validNames.length === 0) return alert("No dynasty names found in your selected list!");
-                
-                const randomName = validNames[Math.floor(Math.random() * validNames.length)];
-                
-                const id = `dyn-${Date.now()}`;
-                const d = { id, name: randomName, branch: '', coaUrl: '' };
-                setDynasties([...dynasties, d]);
-                onUpdateNode(selectedNode.id, { dynastyId: id, lastName: d.name, cadetBranch: d.branch });
-              }}
-              style={{
-                background: 'transparent', border: 'none', color: 'var(--text-primary)',
-                cursor: 'pointer', fontSize: '1.2rem', padding: 0
-              }}
-            >
-              🎲
-            </button>
             {data.dynastyId && !editingDynastyId && (
               <button 
                 onClick={handleEditDynasty}
@@ -647,11 +625,56 @@ export default function InspectorPanel({ currentUser, selectedNode, selectedEdge
 
         {editingDynastyId ? (
           <div style={{ padding: '0.75rem', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <input 
-              type="text" placeholder="House Name (e.g. Stark)"
-              value={newDynasty.name} onChange={e => setNewDynasty({...newDynasty, name: e.target.value})}
-              style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--surface-border)', background: 'var(--bg-color)', color: 'white' }}
-            />
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <input 
+                type="text" placeholder="House Name (e.g. Stark)"
+                value={newDynasty.name} onChange={e => setNewDynasty({...newDynasty, name: e.target.value})}
+                style={{ flex: 1, padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--surface-border)', background: 'var(--bg-color)', color: 'white', minWidth: 0 }}
+              />
+              <select 
+                value={activeDynListId}
+                onChange={e => setActiveDynListId(e.target.value)}
+                style={{
+                  padding: '0.5rem',
+                  borderRadius: '4px',
+                  border: '1px solid var(--surface-border)',
+                  background: 'var(--bg-color)',
+                  color: 'white',
+                  maxWidth: '80px',
+                  fontSize: '0.8rem'
+                }}
+              >
+                <option value="all">All</option>
+                {nameLists.filter(l => l.type === 'dynasty').map(l => (
+                  <option key={l.id} value={l.id}>{l.name}</option>
+                ))}
+              </select>
+              <button
+                title="Randomize Dynasty Name"
+                onClick={() => {
+                  const dynLists = nameLists.filter(l => l.type === 'dynasty');
+                  if (dynLists.length === 0) return alert("You don't have any Dynasty Name Lists. Create some in the Name Lists feature!");
+                  
+                  const validNames = [];
+                  dynLists.forEach(list => {
+                    if (activeDynListId === 'all' || list.id === activeDynListId) {
+                      list.data.names.forEach(n => validNames.push(n.name));
+                    }
+                  });
+
+                  if (validNames.length === 0) return alert("No dynasty names found in your selected list!");
+                  
+                  const randomName = validNames[Math.floor(Math.random() * validNames.length)];
+                  setNewDynasty({ ...newDynasty, name: randomName });
+                }}
+                style={{
+                  background: 'var(--surface-border)', border: 'none', color: 'white',
+                  cursor: 'pointer', fontSize: '1rem', padding: '0.25rem 0.5rem', borderRadius: '4px'
+                }}
+              >
+                🎲
+              </button>
+            </div>
             <input 
               type="text" placeholder="Branch (e.g. Karstark - Optional)"
               value={newDynasty.branch} onChange={e => setNewDynasty({...newDynasty, branch: e.target.value})}
@@ -682,7 +705,12 @@ export default function InspectorPanel({ currentUser, selectedNode, selectedEdge
             </div>
             {isUploading && <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Uploading image...</span>}
             {newDynasty.coaUrl && !isUploading && <img src={newDynasty.coaUrl} alt="COA Preview" style={{ width: '40px', height: '40px', objectFit: 'contain', alignSelf: 'center' }} />}
-            <button onClick={handleSaveDynasty} disabled={isUploading} style={{ padding: '0.5rem', background: isUploading ? 'var(--surface-border)' : '#10b981', border: 'none', borderRadius: '4px', color: 'white', fontWeight: 'bold', cursor: isUploading ? 'not-allowed' : 'pointer' }}>Save Dynasty</button>
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+              {editingDynastyId !== 'new' && (
+                <button onClick={handleDeleteDynasty} disabled={isUploading} style={{ flex: 1, padding: '0.5rem', background: isUploading ? 'var(--surface-border)' : '#ef4444', border: 'none', borderRadius: '4px', color: 'white', fontWeight: 'bold', cursor: isUploading ? 'not-allowed' : 'pointer' }}>Delete</button>
+              )}
+              <button onClick={handleSaveDynasty} disabled={isUploading} style={{ flex: 2, padding: '0.5rem', background: isUploading ? 'var(--surface-border)' : '#10b981', border: 'none', borderRadius: '4px', color: 'white', fontWeight: 'bold', cursor: isUploading ? 'not-allowed' : 'pointer' }}>Save Dynasty</button>
+            </div>
           </div>
         ) : (
           <select 

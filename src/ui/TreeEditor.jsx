@@ -799,6 +799,7 @@ export default function TreeEditor() {
 
       <InspectorPanel 
         currentUser={currentUser}
+        nodes={nodes}
         selectedNode={selectedNode} 
         selectedEdge={selectedEdge}
         onUpdateNode={onUpdateNode} 
