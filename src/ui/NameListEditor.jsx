@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase, getUserProfile } from '../state/supabase';
 import { saveNameList, loadNameLists, deleteNameList } from '../state/db';
 
-export default function NameListEditor() {
+export default function NameListEditor({ isModal = false, onClose }) {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
   const [subscriptionTier, setSubscriptionTier] = useState('free');
@@ -17,6 +17,13 @@ export default function NameListEditor() {
   // Bulk Add State
   const [bulkInput, setBulkInput] = useState('');
   const [bulkGender, setBulkGender] = useState('any'); // male, female, any (for character lists)
+
+  // Single Add State
+  const [singleInput, setSingleInput] = useState('');
+  const [singleGender, setSingleGender] = useState('any');
+
+  // View State
+  const [sortOrder, setSortOrder] = useState('original'); // original, asc, desc
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -53,9 +60,14 @@ export default function NameListEditor() {
       }
     }
 
+    const defaultName = `New ${type === 'character' ? 'Character' : 'Dynasty'} List`;
+    const listName = window.prompt("Enter a name for your new list:", defaultName);
+    
+    if (listName === null) return; // User cancelled
+
     const newList = {
       id: null,
-      name: `New ${type === 'character' ? 'Character' : 'Dynasty'} List`,
+      name: listName.trim() || defaultName,
       type,
       data: { names: [] }
     };
@@ -128,6 +140,40 @@ export default function NameListEditor() {
     setBulkInput('');
   };
 
+  const handleSingleAdd = (e) => {
+    e.preventDefault();
+    if (!singleInput.trim() || !currentList) return;
+
+    const newName = { 
+      name: singleInput.trim(),
+      ...(currentList.type === 'character' ? { gender: singleGender } : {})
+    };
+
+    if (subscriptionTier !== 'pro') {
+      const maxNames = currentList.type === 'character' ? 100 : 50;
+      if (currentList.data.names.length >= maxNames) {
+        return alert(`Free tier is limited to ${maxNames} names per ${currentList.type} list. Upgrade to Pro for unlimited names!`);
+      }
+    }
+
+    setCurrentList(prev => ({
+      ...prev,
+      data: { ...prev.data, names: [...prev.data.names, newName] }
+    }));
+    setSingleInput('');
+  };
+
+  const getSortedNames = () => {
+    if (!currentList) return [];
+    let names = currentList.data.names.map((n, i) => ({ ...n, originalIndex: i }));
+    if (sortOrder === 'asc') {
+      names.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sortOrder === 'desc') {
+      names.sort((a, b) => b.name.localeCompare(a.name));
+    }
+    return names;
+  };
+
   const handleRemoveName = (index) => {
     const updatedNames = [...currentList.data.names];
     updatedNames.splice(index, 1);
@@ -139,15 +185,25 @@ export default function NameListEditor() {
 
   if (isLoading) return <div className="flex-center" style={{ height: '100vh', color: 'var(--text-primary)' }}>Loading...</div>;
 
-  return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', backgroundColor: 'var(--bg-color)', color: 'var(--text-primary)' }}>
+  const content = (
+    <div style={isModal ? { 
+      display: 'flex', height: '80vh', backgroundColor: 'var(--bg-color)', color: 'var(--text-primary)', 
+      borderRadius: '12px', overflow: 'hidden', width: '100%', maxWidth: '1200px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+    } : { 
+      display: 'flex', height: '100vh', overflow: 'hidden', backgroundColor: 'var(--bg-color)', color: 'var(--text-primary)' 
+    }}>
       {/* Sidebar */}
       <div style={{ width: '300px', borderRight: '1px solid var(--surface-border)', backgroundColor: 'var(--surface-1)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--surface-border)' }}>
-          <button onClick={() => navigate('/')} className="btn btn-secondary" style={{ width: '100%', marginBottom: '1rem' }}>
-            ← Back to Home
-          </button>
-          <h2 style={{ fontSize: '1.5rem', margin: 0 }}>Name Lists</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isModal ? 0 : '1rem' }}>
+            <h2 style={{ fontSize: '1.5rem', margin: 0 }}>Name Lists</h2>
+            {isModal && <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '1.5rem', cursor: 'pointer' }}>&times;</button>}
+          </div>
+          {!isModal && (
+            <button onClick={() => navigate('/')} className="btn btn-secondary" style={{ width: '100%' }}>
+              ← Back to Home
+            </button>
+          )}
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>
@@ -224,57 +280,92 @@ export default function NameListEditor() {
               </div>
             </div>
 
-            <div className="glass" style={{ padding: '2rem', borderRadius: 'var(--radius-md)', marginBottom: '2rem' }}>
-              <h3 style={{ marginBottom: '1rem' }}>Quick Add Names</h3>
-              <p style={{ color: 'var(--text-muted)', marginBottom: '1rem', fontSize: '0.9rem' }}>Paste a list of names, one per line.</p>
-              
-              <textarea 
-                value={bulkInput}
-                onChange={e => setBulkInput(e.target.value)}
-                placeholder="Name 1&#10;Name 2&#10;Name 3..."
-                style={{ width: '100%', height: '150px', marginBottom: '1rem' }}
-              />
-              
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                {currentList.type === 'character' ? (
-                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <label>Apply Gender:</label>
-                    <select value={bulkGender} onChange={e => setBulkGender(e.target.value)} style={{ width: 'auto' }}>
-                      <option value="any">Any / Neutral</option>
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                    </select>
-                  </div>
-                ) : (
-                  <div />
-                )}
-                <button onClick={handleBulkAdd} className="btn btn-secondary">Add to List</button>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', marginBottom: '2rem' }}>
+              <div className="glass" style={{ padding: '2rem', borderRadius: 'var(--radius-md)' }}>
+                <h3 style={{ marginBottom: '1rem' }}>Add Single Name</h3>
+                <form onSubmit={handleSingleAdd} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <input 
+                    type="text" 
+                    value={singleInput}
+                    onChange={e => setSingleInput(e.target.value)}
+                    placeholder="Enter name..."
+                    style={{ width: '100%' }}
+                  />
+                  {currentList.type === 'character' && (
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                      <label>Gender:</label>
+                      <select value={singleGender} onChange={e => setSingleGender(e.target.value)} style={{ flex: 1 }}>
+                        <option value="any">Any / Neutral</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                      </select>
+                    </div>
+                  )}
+                  <button type="submit" className="btn btn-primary" style={{ alignSelf: 'flex-start' }}>Add Name</button>
+                </form>
+              </div>
+
+              <div className="glass" style={{ padding: '2rem', borderRadius: 'var(--radius-md)' }}>
+                <h3 style={{ marginBottom: '1rem' }}>Quick Add Names</h3>
+                <p style={{ color: 'var(--text-muted)', marginBottom: '1rem', fontSize: '0.9rem' }}>Paste a list of names, one per line.</p>
+                
+                <textarea 
+                  value={bulkInput}
+                  onChange={e => setBulkInput(e.target.value)}
+                  placeholder="Name 1&#10;Name 2&#10;Name 3..."
+                  style={{ width: '100%', height: '80px', marginBottom: '1rem' }}
+                />
+                
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  {currentList.type === 'character' ? (
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <select value={bulkGender} onChange={e => setBulkGender(e.target.value)} style={{ width: 'auto' }}>
+                        <option value="any">Any / Neutral</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                      </select>
+                    </div>
+                  ) : (
+                    <div />
+                  )}
+                  <button onClick={handleBulkAdd} className="btn btn-secondary">Add List</button>
+                </div>
               </div>
             </div>
 
             <div className="glass" style={{ padding: '2rem', borderRadius: 'var(--radius-md)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h3 style={{ margin: 0 }}>Names in List ({currentList.data.names.length})</h3>
-                {subscriptionTier !== 'pro' && (
-                  <span style={{ fontSize: '0.9rem', color: 'var(--accent-primary)' }}>
-                    Free Tier Limit: {currentList.type === 'character' ? 100 : 50}
-                  </span>
-                )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <h3 style={{ margin: 0 }}>Names in List ({currentList.data.names.length})</h3>
+                  {subscriptionTier !== 'pro' && (
+                    <span style={{ fontSize: '0.9rem', color: 'var(--accent-primary)' }}>
+                      Free Tier Limit: {currentList.type === 'character' ? 100 : 50}
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Sort:</label>
+                  <select value={sortOrder} onChange={e => setSortOrder(e.target.value)} style={{ padding: '0.25rem 0.5rem', width: 'auto' }}>
+                    <option value="original">Date Added</option>
+                    <option value="asc">A to Z</option>
+                    <option value="desc">Z to A</option>
+                  </select>
+                </div>
               </div>
               
               {currentList.data.names.length === 0 ? (
                 <p style={{ color: 'var(--text-muted)' }}>No names added yet.</p>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
-                  {currentList.data.names.map((n, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--surface-2)', padding: '0.5rem 1rem', borderRadius: 'var(--radius-sm)' }}>
+                  {getSortedNames().map((n) => (
+                    <div key={n.originalIndex} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--surface-2)', padding: '0.5rem 1rem', borderRadius: 'var(--radius-sm)' }}>
                       <div>
                         <strong>{n.name}</strong>
                         {currentList.type === 'character' && n.gender && (
                           <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>({n.gender})</span>
                         )}
                       </div>
-                      <button onClick={() => handleRemoveName(i)} style={{ color: '#ef4444', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>×</button>
+                      <button onClick={() => handleRemoveName(n.originalIndex)} style={{ color: '#ef4444', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>×</button>
                     </div>
                   ))}
                 </div>
@@ -286,4 +377,14 @@ export default function NameListEditor() {
       </div>
     </div>
   );
+
+  if (isModal) {
+    return (
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '2rem' }}>
+        {content}
+      </div>
+    );
+  }
+
+  return content;
 }

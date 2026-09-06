@@ -19,6 +19,7 @@ import { supabase, logout, getUserProfile } from '../state/supabase';
 import { saveTree, loadTree, shareTree, loadCalendars } from '../state/db';
 import TreeListModal from './TreeListModal';
 import PricingModal from './PricingModal';
+import NameListEditor from './NameListEditor';
 import { TreeContext } from './TreeContext';
 import { getLayoutedElements } from '../utils/layout';
 
@@ -37,6 +38,7 @@ export default function TreeEditor() {
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isTreeListOpen, setIsTreeListOpen] = useState(false);
+  const [isNameListModalOpen, setIsNameListModalOpen] = useState(false);
   const [currentTreeId, setCurrentTreeId] = useState(null);
   const [currentTreeName, setCurrentTreeName] = useState('Untitled Tree');
   const [isSaving, setIsSaving] = useState(false);
@@ -633,6 +635,7 @@ export default function TreeEditor() {
               <button onClick={() => navigate('/')} className="btn btn-secondary">🏠 Home</button>
               <button onClick={() => navigate('/timeline')} className="btn btn-secondary" style={{ color: '#f59e0b' }}>👑 Timelines</button>
               <button onClick={() => navigate('/calendar')} className="btn btn-secondary" style={{ color: '#f59e0b' }}>👑 Calendars</button>
+              <button onClick={() => setIsNameListModalOpen(true)} className="btn btn-secondary" style={{ color: '#f59e0b' }}>👑 Name Lists</button>
               <button onClick={handleNewTree} className="btn btn-secondary">New Tree</button>
               <button onClick={() => setIsTreeListOpen(true)} className="btn btn-secondary">My Trees</button>
               <button 
@@ -810,20 +813,28 @@ export default function TreeEditor() {
         }} 
       />
 
-      {isExportModalOpen && (
-        <ExportModal 
-          nodes={nodes} 
-          edges={edges} 
-          dynasties={dynasties}
-          onClose={() => setIsExportModalOpen(false)} 
-        />
-      )}
-
       {isTreeListOpen && currentUser && (
         <TreeListModal
           currentUser={currentUser}
           onClose={() => setIsTreeListOpen(false)}
           onSelect={handleSelectTree}
+        />
+      )}
+
+      {isNameListModalOpen && (
+        <NameListEditor 
+          isModal={true} 
+          onClose={() => setIsNameListModalOpen(false)} 
+        />
+      )}
+
+      {isExportModalOpen && (
+        <ExportModal 
+          nodes={nodes} 
+          edges={edges}
+          dynasties={dynasties}
+          onClose={() => setIsExportModalOpen(false)} 
+          getRfInstance={() => rfInstance}
         />
       )}
 

@@ -9,6 +9,8 @@ export default function InspectorPanel({ currentUser, selectedNode, selectedEdge
   const [newDynasty, setNewDynasty] = useState({ name: '', branch: '', coaUrl: '' });
   const [isUploading, setIsUploading] = useState(false);
   const [nameLists, setNameLists] = useState([]);
+  const [activeCharListId, setActiveCharListId] = useState('all');
+  const [activeDynListId, setActiveDynListId] = useState('all');
   const fileInputRef = useRef(null);
   const portraitInputRef = useRef(null);
   const isResizing = useRef(false);
@@ -489,9 +491,28 @@ export default function InspectorPanel({ currentUser, selectedNode, selectedEdge
               borderRadius: '8px',
               border: '1px solid var(--surface-border)',
               background: 'var(--bg-color)',
-              color: 'var(--text-primary)'
+              color: 'var(--text-primary)',
+              minWidth: 0
             }}
           />
+          <select 
+            value={activeCharListId}
+            onChange={e => setActiveCharListId(e.target.value)}
+            style={{
+              padding: '0.5rem',
+              borderRadius: '8px',
+              border: '1px solid var(--surface-border)',
+              background: 'var(--bg-color)',
+              color: 'var(--text-primary)',
+              maxWidth: '80px',
+              fontSize: '0.8rem'
+            }}
+          >
+            <option value="all">All</option>
+            {nameLists.filter(l => l.type === 'character').map(l => (
+              <option key={l.id} value={l.id}>{l.name}</option>
+            ))}
+          </select>
           <button
             className="btn btn-secondary"
             title="Randomize First Name"
@@ -503,11 +524,13 @@ export default function InspectorPanel({ currentUser, selectedNode, selectedEdge
               // Pool all valid names
               const validNames = [];
               charLists.forEach(list => {
-                list.data.names.forEach(n => {
-                  if (n.gender === 'any' || n.gender === currentGender || !n.gender) {
-                    validNames.push(n.name);
-                  }
-                });
+                if (activeCharListId === 'all' || list.id === activeCharListId) {
+                  list.data.names.forEach(n => {
+                    if (n.gender === 'any' || n.gender === currentGender || !n.gender) {
+                      validNames.push(n.name);
+                    }
+                  });
+                }
               });
 
               if (validNames.length === 0) return alert(`No ${currentGender} names found in your lists!`);
@@ -544,7 +567,25 @@ export default function InspectorPanel({ currentUser, selectedNode, selectedEdge
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>House / Dynasty</label>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <select 
+              value={activeDynListId}
+              onChange={e => setActiveDynListId(e.target.value)}
+              style={{
+                padding: '0.2rem',
+                borderRadius: '4px',
+                border: '1px solid var(--surface-border)',
+                background: 'var(--bg-color)',
+                color: 'var(--text-primary)',
+                maxWidth: '60px',
+                fontSize: '0.75rem'
+              }}
+            >
+              <option value="all">All</option>
+              {nameLists.filter(l => l.type === 'dynasty').map(l => (
+                <option key={l.id} value={l.id}>{l.name}</option>
+              ))}
+            </select>
             <button
               title="Randomize Dynasty Name"
               onClick={() => {
@@ -553,10 +594,12 @@ export default function InspectorPanel({ currentUser, selectedNode, selectedEdge
                 
                 const validNames = [];
                 dynLists.forEach(list => {
-                  list.data.names.forEach(n => validNames.push(n.name));
+                  if (activeDynListId === 'all' || list.id === activeDynListId) {
+                    list.data.names.forEach(n => validNames.push(n.name));
+                  }
                 });
 
-                if (validNames.length === 0) return alert("No dynasty names found in your lists!");
+                if (validNames.length === 0) return alert("No dynasty names found in your selected list!");
                 
                 const randomName = validNames[Math.floor(Math.random() * validNames.length)];
                 
@@ -567,7 +610,7 @@ export default function InspectorPanel({ currentUser, selectedNode, selectedEdge
               }}
               style={{
                 background: 'transparent', border: 'none', color: 'var(--text-primary)',
-                cursor: 'pointer', fontSize: '1.2rem'
+                cursor: 'pointer', fontSize: '1.2rem', padding: 0
               }}
             >
               🎲
@@ -580,7 +623,7 @@ export default function InspectorPanel({ currentUser, selectedNode, selectedEdge
                   cursor: 'pointer', fontSize: '0.8rem', textDecoration: 'underline'
                 }}
               >
-                ✏️ Edit
+                ✏️
               </button>
             )}
             <button 
