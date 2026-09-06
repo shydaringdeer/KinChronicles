@@ -348,7 +348,7 @@ export const saveManuscript = async (userId, manuscriptId, title, author, copyri
       if (error) throw error;
       return res;
     } else {
-      const { data: res, error } = await supabase.from('manuscripts').insert({ ...payload, id: manuscriptId }).select().single();
+      const { data: res, error } = await supabase.from('manuscripts').insert(payload).select().single();
       if (error) throw error;
       return res;
     }

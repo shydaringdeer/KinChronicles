@@ -91,8 +91,9 @@ export default function ManuscriptEditor() {
         } else {
           // Initialize with a blank book
           const blank = createBlankBook();
-          saveManuscript(currentUser.id, blank.id, blank.title, blank.author, blank.copyright, blank.nodes).then(() => {
-            setLibrary([blank]);
+          saveManuscript(currentUser.id, null, blank.title, blank.author, blank.copyright, blank.nodes).then((savedBook) => {
+            setLibrary([savedBook]);
+            setActiveManuscriptId(savedBook.id);
           }).catch(console.error);
         }
       });
@@ -257,9 +258,9 @@ export default function ManuscriptEditor() {
     if (!currentUser) return;
     const newBook = createBlankBook();
     try {
-      await saveManuscript(currentUser.id, newBook.id, newBook.title, newBook.author, newBook.copyright, newBook.nodes);
-      setLibrary(prev => [...prev, newBook]);
-      setActiveManuscriptId(newBook.id);
+      const savedBook = await saveManuscript(currentUser.id, null, newBook.title, newBook.author, newBook.copyright, newBook.nodes);
+      setLibrary(prev => [...prev, savedBook]);
+      setActiveManuscriptId(savedBook.id);
       setSelectedNodeId(null);
     } catch (e) {
       console.error("Error creating manuscript:", e);
