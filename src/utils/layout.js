@@ -11,7 +11,6 @@ export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
 
   dagreGraph.setGraph({ rankdir: direction, nodesep: 100, ranksep: 160 });
 
-  // Separate edges into vertical (bloodline) and horizontal (spouses)
   const isHorizontal = (edge) => {
     const rel = edge.data?.relationType;
     if (rel === 'married' || rel === 'betrothed' || rel === 'lovers') return true;
@@ -22,66 +21,115 @@ export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
   const verticalEdges = edges.filter(e => !isHorizontal(e));
   const horizontalEdges = edges.filter(e => isHorizontal(e));
 
-  // Determine which nodes are part of the main tree (have vertical edges or are isolated roots)
-  const coreNodeIds = new Set();
-  verticalEdges.forEach(e => {
-    coreNodeIds.add(e.source);
-    coreNodeIds.add(e.target);
-  });
-  
-  // If a node has NO edges at all, it's also a core node (isolated)
-  // If a node ONLY has horizontal edges, it's an "in-law" spouse
+  const coreNodes = new Set();
   const inLawNodes = new Set();
-  
-  nodes.forEach(node => {
-    const hasAnyVertical = coreNodeIds.has(node.id);
-    if (!hasAnyVertical) {
-      // Check if they have horizontal edges
-      const hasHorizontal = horizontalEdges.some(e => e.source === node.id || e.target === node.id);
-      if (hasHorizontal) {
-        inLawNodes.add(node.id);
-      } else {
-        coreNodeIds.add(node.id); // Completely isolated, let dagre handle it
+  const inLawToCore = new Map();
+
+  // 1. Nodes with incoming vertical edges (parents) are Core
+  nodes.forEach(n => {
+    if (verticalEdges.some(e => e.target === n.id)) {
+      coreNodes.add(n.id);
+    }
+  });
+
+  // 2. Process marriages to identify inLaws
+  const visited = new Set();
+  const adj = {};
+  nodes.forEach(n => adj[n.id] = []);
+  horizontalEdges.forEach(e => {
+    adj[e.source].push(e.target);
+    adj[e.target].push(e.source);
+  });
+
+  nodes.forEach(startNode => {
+    if (!visited.has(startNode.id)) {
+      const comp = [];
+      const q = [startNode.id];
+      visited.add(startNode.id);
+      while(q.length > 0) {
+        const curr = q.shift();
+        comp.push(curr);
+        adj[curr].forEach(neighbor => {
+          if (!visited.has(neighbor)) {
+            visited.add(neighbor);
+            q.push(neighbor);
+          }
+        });
+      }
+      
+      let compCores = comp.filter(id => coreNodes.has(id));
+      if (compCores.length === 0 && comp.length > 0) {
+        // Pick one as Core
+        const hasChildren = comp.find(id => verticalEdges.some(e => e.source === id));
+        const chosenCore = hasChildren || comp[0];
+        coreNodes.add(chosenCore);
+        compCores.push(chosenCore);
+      }
+      
+      if (compCores.length > 0) {
+        comp.forEach(id => {
+          if (!coreNodes.has(id)) {
+            inLawNodes.add(id);
+            let partnerCore = adj[id].find(neighbor => coreNodes.has(neighbor));
+            if (!partnerCore) partnerCore = compCores[0]; // Fallback
+            
+            let spouseIndex = 1;
+            inLawToCore.forEach((info) => {
+              if (info.coreId === partnerCore) spouseIndex++;
+            });
+            
+            inLawToCore.set(id, { coreId: partnerCore, index: spouseIndex });
+          }
+        });
       }
     }
   });
 
-  // Add only Core nodes to dagre
+  // 3. Any isolated nodes are Core
+  nodes.forEach(n => {
+    if (!coreNodes.has(n.id) && !inLawNodes.has(n.id)) {
+      coreNodes.add(n.id);
+    }
+  });
+
+  // 4. Add Core nodes to dagre
   nodes.forEach((node) => {
     if (!inLawNodes.has(node.id)) {
       if (node.type === 'waypoint') {
         dagreGraph.setNode(node.id, { width: 10, height: 10 });
       } else {
-        // Find how many in-law spouses this node has
-        const spouseCount = horizontalEdges.filter(e => 
-          (e.source === node.id && inLawNodes.has(e.target)) || 
-          (e.target === node.id && inLawNodes.has(e.source))
-        ).length;
+        // Count how many inLaws are attached to THIS core node
+        let spouseCount = 0;
+        inLawToCore.forEach((info) => {
+          if (info.coreId === node.id) spouseCount++;
+        });
         
         const nWidth = node.measured?.width || node.width || defaultNodeWidth;
         const nHeight = node.measured?.height || node.height || defaultNodeHeight;
         
-        // Inflate width to make room for spouses to the right
         const effectiveWidth = nWidth + (spouseCount * HORIZONTAL_GAP);
-        // We need to store the effective width so we can offset correctly later
         dagreGraph.setNode(node.id, { width: effectiveWidth, height: nHeight, spouseCount });
       }
     }
   });
 
-  // Add only vertical edges to dagre
+  // 5. Add vertical edges to dagre, EXCLUDING those to/from InLaws
   verticalEdges.forEach((edge) => {
-    dagreGraph.setEdge(edge.source, edge.target);
+    if (!inLawNodes.has(edge.source) && !inLawNodes.has(edge.target)) {
+      dagreGraph.setEdge(edge.source, edge.target);
+    }
   });
 
-  // Calculate Layout for Core Tree
+  // 6. Calculate Layout
   dagre.layout(dagreGraph);
 
-  // Apply layout to all nodes
+  // 7. Apply layout
   const layoutedNodes = nodes.map((node) => {
     if (!inLawNodes.has(node.id)) {
       const nodeWithPosition = dagreGraph.node(node.id);
       
+      if (!nodeWithPosition) return node; // Edge case safety
+
       if (node.type === 'waypoint') {
         return {
           ...node,
@@ -95,8 +143,6 @@ export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
         const nHeight = node.measured?.height || node.height || defaultNodeHeight;
         const effectiveWidth = nWidth + ((nodeWithPosition.spouseCount || 0) * HORIZONTAL_GAP);
         
-        // nodeWithPosition.x is the center of the inflated box.
-        // We want to place the actual node at the far left of this box.
         return {
           ...node,
           position: {
@@ -106,18 +152,15 @@ export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
         };
       }
     }
-    return node; // We will handle inLaws next
+    return node; 
   });
 
-  // Second Pass: Position In-Laws next to their Core partners
+  // 8. Position In-Laws
   layoutedNodes.forEach(node => {
     if (inLawNodes.has(node.id)) {
-      // Find their partner in the Core tree
-      const spouseEdge = horizontalEdges.find(e => e.source === node.id || e.target === node.id);
-      if (spouseEdge) {
-        const partnerId = spouseEdge.source === node.id ? spouseEdge.target : spouseEdge.source;
-        const partnerNode = layoutedNodes.find(n => n.id === partnerId);
-        
+      const info = inLawToCore.get(node.id);
+      if (info) {
+        const partnerNode = layoutedNodes.find(n => n.id === info.coreId);
         if (partnerNode) {
           const partnerHeight = partnerNode.measured?.height || partnerNode.height || defaultNodeHeight;
           const nodeCurrentHeight = node.measured?.height || node.height || defaultNodeHeight;
@@ -125,7 +168,7 @@ export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
           const partnerCenterY = partnerNode.position.y + (partnerHeight / 2);
           
           node.position = {
-            x: partnerNode.position.x + HORIZONTAL_GAP,
+            x: partnerNode.position.x + (HORIZONTAL_GAP * info.index),
             y: partnerCenterY - (nodeCurrentHeight / 2)
           };
         }
