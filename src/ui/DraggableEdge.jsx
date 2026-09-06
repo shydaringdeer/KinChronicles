@@ -25,6 +25,8 @@ export default function DraggableEdge(props) {
   const isDragging = dragPos !== null;
 
   let path = '';
+  const isTB = sourcePosition === Position.Bottom && targetPosition === Position.Top;
+
   if (isDragging) {
     const [path1] = getSmoothStepPath({
       sourceX, sourceY, sourcePosition,
@@ -36,11 +38,34 @@ export default function DraggableEdge(props) {
     });
     path = path1 + ' ' + path2;
   } else {
-    const [standardPath] = getSmoothStepPath({
-      sourceX, sourceY, sourcePosition,
-      targetX, targetY, targetPosition,
-    });
-    path = standardPath;
+    if (isTB) {
+      // Deterministic hash based on source ID to group siblings on the same horizontal trunk lane,
+      // but separate different families onto different lanes to prevent overlapping intersections.
+      let hash = 0;
+      for (let i = 0; i < source.length; i++) {
+        hash = source.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      const offset = (Math.abs(hash) % 80) - 40; // Generate offset between -40 and +40
+      
+      const midY = ((sourceY + targetY) / 2) + offset;
+      const radius = 10;
+      
+      if (Math.abs(sourceX - targetX) <= 1) {
+        path = `M ${sourceX},${sourceY} L ${targetX},${targetY}`;
+      } else if (Math.abs(sourceX - targetX) < radius * 2) {
+        path = `M ${sourceX},${sourceY} L ${sourceX},${midY} L ${targetX},${midY} L ${targetX},${targetY}`;
+      } else {
+        const isRight = targetX > sourceX;
+        const r = isRight ? radius : -radius;
+        path = `M ${sourceX},${sourceY} L ${sourceX},${midY - radius} Q ${sourceX},${midY} ${sourceX + r},${midY} L ${targetX - r},${midY} Q ${targetX},${midY} ${targetX},${midY + radius} L ${targetX},${targetY}`;
+      }
+    } else {
+      const [standardPath] = getSmoothStepPath({
+        sourceX, sourceY, sourcePosition,
+        targetX, targetY, targetPosition,
+      });
+      path = standardPath;
+    }
   }
 
   const handlePointerDown = (e) => {

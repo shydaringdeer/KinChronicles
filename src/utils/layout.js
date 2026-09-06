@@ -1,7 +1,7 @@
 import dagre from 'dagre';
 
 export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
-  const dagreGraph = new dagre.graphlib.Graph();
+  const dagreGraph = new dagre.graphlib.Graph({ directed: true, multigraph: true });
   dagreGraph.setDefaultEdgeLabel(() => ({}));
 
   const defaultNodeWidth = 260; 
@@ -25,15 +25,7 @@ export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
   const inLawNodes = new Set();
   const inLawToCore = new Map();
 
-  // 1. Nodes with incoming vertical edges (parents) are Core
-  nodes.forEach(n => {
-    if (verticalEdges.some(e => e.target === n.id)) {
-      coreNodes.add(n.id);
-    }
-  });
-
-  // 2. Process marriages to identify inLaws
-  const visited = new Set();
+  // 1. Group nodes into marriage components
   const adj = {};
   nodes.forEach(n => adj[n.id] = []);
   horizontalEdges.forEach(e => {
@@ -41,6 +33,7 @@ export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
     adj[e.target].push(e.source);
   });
 
+  const visited = new Set();
   nodes.forEach(startNode => {
     if (!visited.has(startNode.id)) {
       const comp = [];
@@ -57,53 +50,45 @@ export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
         });
       }
       
-      let compCores = comp.filter(id => coreNodes.has(id));
-      if (compCores.length === 0 && comp.length > 0) {
-        // Pick one as Core
-        const hasChildren = comp.find(id => verticalEdges.some(e => e.source === id));
-        const chosenCore = hasChildren || comp[0];
-        coreNodes.add(chosenCore);
-        compCores.push(chosenCore);
-      }
+      let chosenCore = comp[0];
+      let bestScore = -1;
+      comp.forEach(id => {
+        let score = 0;
+        if (verticalEdges.some(e => e.target === id)) score += 2; 
+        if (verticalEdges.some(e => e.source === id)) score += 1; 
+        if (score > bestScore || (score === bestScore && id < chosenCore)) {
+          bestScore = score;
+          chosenCore = id;
+        }
+      });
+
+      coreNodes.add(chosenCore);
       
-      if (compCores.length > 0) {
-        comp.forEach(id => {
-          if (!coreNodes.has(id)) {
-            inLawNodes.add(id);
-            let partnerCore = adj[id].find(neighbor => coreNodes.has(neighbor));
-            if (!partnerCore) partnerCore = compCores[0]; // Fallback
-            
-            let spouseIndex = 1;
-            inLawToCore.forEach((info) => {
-              if (info.coreId === partnerCore) spouseIndex++;
-            });
-            
-            inLawToCore.set(id, { coreId: partnerCore, index: spouseIndex });
-          }
-        });
-      }
+      comp.forEach(id => {
+        if (id !== chosenCore) {
+          inLawNodes.add(id);
+          inLawToCore.set(id, { coreId: chosenCore });
+        }
+      });
     }
   });
 
-  // 3. Any isolated nodes are Core
+  const coreToInLawCount = {};
   nodes.forEach(n => {
-    if (!coreNodes.has(n.id) && !inLawNodes.has(n.id)) {
-      coreNodes.add(n.id);
-    }
+      if (inLawNodes.has(n.id)) {
+          const coreId = inLawToCore.get(n.id).coreId;
+          coreToInLawCount[coreId] = (coreToInLawCount[coreId] || 0) + 1;
+          inLawToCore.get(n.id).index = coreToInLawCount[coreId];
+      }
   });
 
-  // 4. Add Core nodes to dagre
+  // 2. Add Core nodes to dagre
   nodes.forEach((node) => {
-    if (!inLawNodes.has(node.id)) {
+    if (coreNodes.has(node.id)) {
       if (node.type === 'waypoint') {
         dagreGraph.setNode(node.id, { width: 10, height: 10 });
       } else {
-        // Count how many inLaws are attached to THIS core node
-        let spouseCount = 0;
-        inLawToCore.forEach((info) => {
-          if (info.coreId === node.id) spouseCount++;
-        });
-        
+        const spouseCount = coreToInLawCount[node.id] || 0;
         const nWidth = node.measured?.width || node.width || defaultNodeWidth;
         const nHeight = node.measured?.height || node.height || defaultNodeHeight;
         
@@ -113,22 +98,79 @@ export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
     }
   });
 
-  // 5. Add vertical edges to dagre, EXCLUDING those to/from InLaws
+  // 3. Add vertical edges to dagre, rewiring InLaw edges to their Core
   verticalEdges.forEach((edge) => {
-    if (!inLawNodes.has(edge.source) && !inLawNodes.has(edge.target)) {
-      dagreGraph.setEdge(edge.source, edge.target);
+    let sourceId = edge.source;
+    let targetId = edge.target;
+
+    if (inLawNodes.has(sourceId)) sourceId = inLawToCore.get(sourceId).coreId;
+    if (inLawNodes.has(targetId)) targetId = inLawToCore.get(targetId).coreId;
+
+    if (sourceId !== targetId) {
+      dagreGraph.setEdge(sourceId, targetId);
     }
   });
 
-  // 6. Calculate Layout
+  // 4. Calculate Layout
   dagre.layout(dagreGraph);
 
-  // 7. Apply layout
-  const layoutedNodes = nodes.map((node) => {
-    if (!inLawNodes.has(node.id)) {
-      const nodeWithPosition = dagreGraph.node(node.id);
+  // 5. Swap Parent X Coordinates to prevent diagonal crossing overlaps
+  // Core is on the left, InLaws are on the right.
+  // We force Core's parents to the left, and InLaw's parents to the right.
+  coreNodes.forEach(childCoreId => {
+    const parentsOfCore = [];
+    const parentsOfInLaws = [];
+
+    verticalEdges.forEach(edge => {
+      let targetCore = inLawNodes.has(edge.target) ? inLawToCore.get(edge.target).coreId : edge.target;
+      if (targetCore === childCoreId) {
+        let sourceCore = inLawNodes.has(edge.source) ? inLawToCore.get(edge.source).coreId : edge.source;
+        if (edge.target === childCoreId) {
+          parentsOfCore.push(sourceCore);
+        } else {
+          parentsOfInLaws.push(sourceCore);
+        }
+      }
+    });
+
+    const uniqueCoreParents = [...new Set(parentsOfCore)];
+    const uniqueInLawParents = [...new Set(parentsOfInLaws)];
+
+    // Exclude parents that are shared by both spouses (e.g. half-siblings marrying)
+    const cOnly = uniqueCoreParents.filter(id => !uniqueInLawParents.includes(id));
+    const iOnly = uniqueInLawParents.filter(id => !uniqueCoreParents.includes(id));
+
+    if (cOnly.length > 0 && iOnly.length > 0) {
+      const allParents = [...cOnly, ...iOnly];
+      const parentNodes = allParents.map(id => ({ id, pos: dagreGraph.node(id) })).filter(p => p.pos);
       
-      if (!nodeWithPosition) return node; // Edge case safety
+      const byY = {};
+      parentNodes.forEach(p => {
+        const yStr = Math.round(p.pos.y).toString();
+        if (!byY[yStr]) byY[yStr] = [];
+        byY[yStr].push(p);
+      });
+
+      Object.values(byY).forEach(rankParents => {
+        if (rankParents.length > 1) {
+          const sortedX = rankParents.map(p => p.pos.x).sort((a, b) => a - b);
+          
+          const cParents = rankParents.filter(p => cOnly.includes(p.id));
+          const iParents = rankParents.filter(p => iOnly.includes(p.id));
+          
+          let xIndex = 0;
+          cParents.forEach(p => { p.pos.x = sortedX[xIndex++]; });
+          iParents.forEach(p => { p.pos.x = sortedX[xIndex++]; });
+        }
+      });
+    }
+  });
+
+  // 6. Apply layout to Cores and create new objects for InLaws
+  let layoutedNodes = nodes.map((node) => {
+    if (coreNodes.has(node.id)) {
+      const nodeWithPosition = dagreGraph.node(node.id);
+      if (!nodeWithPosition) return node;
 
       if (node.type === 'waypoint') {
         return {
@@ -152,11 +194,17 @@ export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
         };
       }
     }
+    
+    // Create new object for InLaws so React Flow detects the state change
+    if (inLawNodes.has(node.id)) {
+      return { ...node };
+    }
+    
     return node; 
   });
 
-  // 8. Position In-Laws
-  layoutedNodes.forEach(node => {
+  // 7. Position InLaws
+  layoutedNodes = layoutedNodes.map(node => {
     if (inLawNodes.has(node.id)) {
       const info = inLawToCore.get(node.id);
       if (info) {
@@ -167,13 +215,17 @@ export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
           
           const partnerCenterY = partnerNode.position.y + (partnerHeight / 2);
           
-          node.position = {
-            x: partnerNode.position.x + (HORIZONTAL_GAP * info.index),
-            y: partnerCenterY - (nodeCurrentHeight / 2)
+          return {
+            ...node,
+            position: {
+              x: partnerNode.position.x + (HORIZONTAL_GAP * info.index),
+              y: partnerCenterY - (nodeCurrentHeight / 2)
+            }
           };
         }
       }
     }
+    return node;
   });
 
   return { layoutedNodes, layoutedEdges: edges };

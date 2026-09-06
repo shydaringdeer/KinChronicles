@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toPng } from 'html-to-image';
 import { getNodesBounds, getViewportForBounds } from '@xyflow/react';
 
-export default function ExportModal({ nodes, edges, dynasties = [], onClose }) {
+export default function ExportModal({ nodes, edges, dynasties = [], treeName = 'family-tree', onClose }) {
   const [pngBlob, setPngBlob] = useState(null);
   const [isGenerating, setIsGenerating] = useState(true);
 
@@ -72,15 +72,22 @@ export default function ExportModal({ nodes, edges, dynasties = [], onClose }) {
     }
   };
 
+  const getFileName = (ext) => {
+    const d = new Date();
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const cleanName = treeName.replace(/[^a-z0-9_-]/gi, '_');
+    return `${cleanName}_${dateStr}.${ext}`;
+  };
+
   const handleDownloadJson = () => {
     const data = JSON.stringify({ nodes, edges, dynasties }, null, 2);
     const blob = new Blob([data], { type: 'application/json' });
-    saveFileNative(blob, 'family-tree.json', 'application/json', 'json');
+    saveFileNative(blob, getFileName('json'), 'application/json', 'json');
   };
 
   const handleDownloadPng = () => {
     if (pngBlob) {
-      saveFileNative(pngBlob, 'family-tree.png', 'image/png', 'png');
+      saveFileNative(pngBlob, getFileName('png'), 'image/png', 'png');
     }
   };
 

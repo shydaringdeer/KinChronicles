@@ -659,9 +659,6 @@ export default function TreeEditor() {
             <button onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} className="btn btn-secondary">
               {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
             </button>
-            <button onClick={handleAutoLayout} className="btn btn-secondary">
-              🪄 Auto-Layout
-            </button>
             <button onClick={onImportJson} className="btn btn-secondary">
               📥 Import
             </button>
@@ -834,6 +831,7 @@ export default function TreeEditor() {
           nodes={nodes} 
           edges={edges}
           dynasties={dynasties}
+          treeName={currentTreeName}
           onClose={() => setIsExportModalOpen(false)} 
           getRfInstance={() => rfInstance}
         />
