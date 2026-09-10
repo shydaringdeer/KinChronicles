@@ -53,8 +53,9 @@ export default function HomeMenu() {
     }}>
       {/* Navigation Bar */}
       <nav className="nav-bar">
-        <div className="nav-brand" style={{ display: 'flex', alignItems: 'center' }}>
-          <img src="/logo.png" alt="KinChronicles" style={{ height: '64px', width: 'auto' }} />
+        <div className="nav-brand" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <img src="/logo.png" alt="Logo" style={{ height: '48px', width: 'auto' }} />
+          <span>KinChronicles</span>
         </div>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           {currentUser ? (
@@ -215,8 +216,9 @@ export default function HomeMenu() {
         gap: '1rem',
         color: 'var(--text-muted)'
       }}>
-        <div className="nav-brand" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
-          <img src="/logo.png" alt="KinChronicles" style={{ height: '80px', width: 'auto' }} />
+        <div className="nav-brand" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem', gap: '0.75rem' }}>
+          <img src="/logo.png" alt="Logo" style={{ height: '64px', width: 'auto' }} />
+          <span>KinChronicles</span>
         </div>
         <p>© {new Date().getFullYear()} KinChronicles. All rights reserved.</p>
       </footer>
