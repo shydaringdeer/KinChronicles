@@ -1,15 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;700&display=swap');
 
 :root {
-  /* StoryLegend Theme */
-  --bg-color: #18181b; /* Dark charcoal */
+  /* StoryLegend Theme (Blue/Gold) */
+  --bg-color: #0b1525; /* Deep rich blue */
   --bg-gradient: none;
   
-  --surface-0: #18181b;
-  --surface-1: #27272a;
-  --surface-2: #3f3f46;
-  --surface-border: #52525b;
-  --surface-border-hover: #71717a;
+  --surface-0: #0b1525;
+  --surface-1: #111d33;
+  --surface-2: #1a2a47;
+  --surface-border: #283a5c;
+  --surface-border-hover: #3b5078;
   
   --text-primary: #f4f4f5;
   --text-secondary: #a1a1aa;
@@ -20,9 +20,9 @@
   --accent-secondary: #ec4899; /* Pink */
   
   /* Node specific */
-  --node-bg: #f4f4f5; /* Off-white pill */
-  --node-text: #18181b;
-  --node-border: #f4f4f5;
+  --node-bg: #e2e8f0; /* Off-white pill */
+  --node-text: #0f172a;
+  --node-border: #e2e8f0;
   --node-border-active: #fbbf24; /* Gold outline */
   --node-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
   
@@ -186,7 +186,7 @@ input:focus, textarea:focus, select:focus {
 
 .btn-primary {
   background: var(--accent-primary);
-  color: #18181b;
+  color: #0b1525;
 }
 .btn-primary:hover:not(:disabled) {
   background: var(--accent-primary-hover);
@@ -377,9 +377,9 @@ input:focus, textarea:focus, select:focus {
   align-items: center;
   padding: 1rem 2rem;
   z-index: 1000;
-  background: rgba(24, 24, 27, 0.8);
+  background: rgba(11, 21, 37, 0.8);
   backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(251, 191, 36, 0.15); /* Subtle gold border */
 }
 
 .nav-brand {
@@ -387,7 +387,6 @@ input:focus, textarea:focus, select:focus {
   font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: -0.5px;
-  background: linear-gradient(45deg, var(--accent-primary), #f59e0b);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  /* Ensure the nav-brand container scales well with the image */
+  height: 100%;
 }
