@@ -162,6 +162,9 @@ const PersonNode = ({ id, data, selected }) => {
     }));
   };
 
+  const parsedTitles = data.titles ? data.titles.split(',').map(t => t.trim()).filter(t => t) : [];
+  const prefixTitle = parsedTitles.length > 0 ? parsedTitles[0] + ' ' : '';
+
   return (
     <>
       <NodeToolbar isVisible={selected} position={Position.Top} style={{ display: 'flex', gap: '0.5rem' }}>
@@ -177,7 +180,7 @@ const PersonNode = ({ id, data, selected }) => {
 
       <div 
         style={{
-          width: '200px',
+          width: '240px',
           padding: '1rem',
           borderRadius: '12px',
           backgroundColor: data.gender === 'male' ? '#bfdbfe' : data.gender === 'female' ? '#fbcfe8' : '#ffffff',
@@ -222,7 +225,7 @@ const PersonNode = ({ id, data, selected }) => {
         )}
         
         <h3 style={{ margin: dynasty?.coaUrl && !data.portraitUrl ? '16px 0 0' : 0, fontSize: '1.1rem', fontWeight: 600 }}>
-          {data.firstName || 'New'} {data.regnalNumber ? toRoman(data.regnalNumber) + ' ' : ''}{dynasty?.name || data.lastName || 'Person'}
+          {prefixTitle}{data.firstName || 'New'} {data.regnalNumber ? toRoman(data.regnalNumber) + ' ' : ''}{dynasty?.name || data.lastName || 'Person'}
         </h3>
         
         {(dynasty?.name || data.lastName) && (
@@ -230,6 +233,21 @@ const PersonNode = ({ id, data, selected }) => {
             House {dynasty?.name || data.lastName}
             {(dynasty?.branch || data.cadetBranch) && <span style={{display: 'block', fontSize: '0.75rem', fontStyle: 'italic'}}>{dynasty?.branch || data.cadetBranch} Branch</span>}
           </p>
+        )}
+
+        {parsedTitles.length > 0 && (
+          <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center' }}>
+            {parsedTitles.map((title, i) => (
+              <span key={i} style={{ 
+                color: 'var(--text-secondary)', 
+                fontSize: '0.75rem', 
+                fontStyle: 'italic',
+                fontWeight: 600
+              }}>
+                {title}
+              </span>
+            ))}
+          </div>
         )}
 
         {ageString && (

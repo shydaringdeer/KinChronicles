@@ -793,6 +793,27 @@ export default function InspectorPanel({ currentUser, nodes, selectedNode, selec
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>Titles (comma separated)</label>
+        <textarea 
+          name="titles"
+          value={data.titles || ''} 
+          onChange={handleChange}
+          placeholder="e.g. King in the North, Lord of Winterfell"
+          style={{
+            padding: '0.75rem',
+            borderRadius: '8px',
+            backgroundColor: 'var(--bg-color)',
+            border: '1px solid var(--surface-border)',
+            color: 'var(--text-primary)',
+            fontSize: '1rem',
+            fontFamily: 'var(--font-body)',
+            minHeight: '60px',
+            resize: 'vertical'
+          }}
+        />
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
         <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>Traits (comma separated)</label>
         <textarea 
           name="traits"
