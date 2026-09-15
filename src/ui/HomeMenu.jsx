@@ -202,6 +202,22 @@ export default function HomeMenu() {
               Open Manuscript Writer (Pro)
             </button>
           </div>
+
+          {/* Feature 6: Dynasty Simulator */}
+          <div className="feature-card">
+            <div className="feature-icon">✨</div>
+            <h3 className="feature-title">Dynasty Simulator</h3>
+            <p className="feature-desc">
+              Generate hundreds of years of lineage history algorithmically. Watch your dynasties rise, fall, and reproduce!
+            </p>
+            <button 
+              onClick={() => navigate('/chronicle')}
+              className="btn btn-secondary"
+              style={{ alignSelf: 'flex-start', background: 'linear-gradient(45deg, #f59e0b, #d97706)', color: 'white', border: 'none' }}
+            >
+              Simulate Dynasty
+            </button>
+          </div>
         </div>
       </section>
 

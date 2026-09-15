@@ -10,6 +10,7 @@ import CalendarEditor from './ui/CalendarEditor';
 
 import NameListEditor from './ui/NameListEditor';
 import ManuscriptEditor from './ui/ManuscriptEditor';
+import ChronicleSimulator from './ui/ChronicleSimulator';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
         <Route path="/calendar" element={<CalendarEditor />} />
         <Route path="/names" element={<NameListEditor />} />
         <Route path="/manuscript" element={<ManuscriptEditor />} />
+        <Route path="/chronicle" element={<ChronicleSimulator />} />
       </Routes>
     </HashRouter>
   );

@@ -589,3 +589,88 @@ export const deleteManuscriptApi = async (manuscriptId, userId) => {
   }
 };
 
+/**
+ * CHRONICLES
+ */
+export const saveChronicle = async (userId, chronicleId, name, data) => {
+  if (!userId) throw new Error("User not authenticated");
+  const payload = {
+    user_id: userId,
+    name,
+    data,
+    updated_at: new Date().toISOString()
+  };
+
+  if (isLocalOnly(userId)) {
+    const chronicles = getLocal('kinchronicles_chronicles', []);
+    const id = chronicleId || generateId();
+    const existingIndex = chronicles.findIndex(c => c.id === id);
+    const saved = { id, ...payload };
+    if (existingIndex >= 0) {
+      chronicles[existingIndex] = saved;
+    } else {
+      chronicles.unshift(saved);
+    }
+    setLocal('kinchronicles_chronicles', chronicles);
+    return saved;
+  }
+
+  try {
+    if (chronicleId) {
+      const { data: res, error } = await supabase.from('chronicles').update(payload).eq('id', chronicleId).eq('user_id', userId).select().single();
+      if (error) throw error;
+      return res;
+    } else {
+      const { data: res, error } = await supabase.from('chronicles').insert(payload).select().single();
+      if (error) throw error;
+      return res;
+    }
+  } catch (err) {
+    console.warn("Supabase saveChronicle failed, using local storage:", err);
+    const chronicles = getLocal('kinchronicles_chronicles', []);
+    const id = chronicleId || generateId();
+    const saved = { id, ...payload };
+    
+    const existingIndex = chronicles.findIndex(c => c.id === id);
+    if (existingIndex >= 0) {
+      chronicles[existingIndex] = saved;
+    } else {
+      chronicles.unshift(saved);
+    }
+    setLocal('kinchronicles_chronicles', chronicles);
+    return saved;
+  }
+};
+
+export const loadChronicles = async (userId) => {
+  if (!userId) return [];
+  if (isLocalOnly(userId)) {
+    return getLocal('kinchronicles_chronicles', []);
+  }
+
+  try {
+    const { data, error } = await supabase.from('chronicles').select('*').eq('user_id', userId).order('updated_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.warn("Supabase loadChronicles failed, using local storage:", err);
+    return getLocal('kinchronicles_chronicles', []);
+  }
+};
+
+export const deleteChronicle = async (chronicleId, userId) => {
+  const localChronicles = getLocal('kinchronicles_chronicles', []).filter(c => c.id !== chronicleId);
+  setLocal('kinchronicles_chronicles', localChronicles);
+
+  if (isLocalOnly(userId)) return true;
+
+  try {
+    const { error } = await supabase.from('chronicles').delete().eq('id', chronicleId).eq('user_id', userId);
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.warn("Supabase deleteChronicle failed:", error);
+    return true;
+  }
+};
+

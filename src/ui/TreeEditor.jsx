@@ -173,12 +173,7 @@ export default function TreeEditor() {
     }
   };
 
-  const handleAutoLayout = useCallback(() => {
-    const { layoutedNodes, layoutedEdges } = getLayoutedElements(nodes, edges);
-    setNodes([...layoutedNodes]);
-    setEdges([...layoutedEdges]);
-    setTimeout(() => rfInstance?.fitView({ duration: 800 }), 100);
-  }, [nodes, edges, setNodes, setEdges, rfInstance]);
+
 
   const nodeTypes = useMemo(() => ({ person: PersonNode, waypoint: WaypointNode }), []);
   const edgeTypes = useMemo(() => ({ 
